@@ -27,9 +27,11 @@ TMP_DIR=$(mktemp -d)
   tar -xzf xterm-xterm-*.tgz
   cp package/lib/xterm.js "$SCRIPT_DIR/web/vendor/xterm.js"
   cp package/css/xterm.css "$SCRIPT_DIR/web/vendor/xterm.css"
+  sed -i -E 's/-9{4}/-10000/g' "$SCRIPT_DIR/web/vendor/xterm.css"
   rm -rf package
   tar -xzf xterm-addon-fit-*.tgz
   cp package/lib/addon-fit.js "$SCRIPT_DIR/web/vendor/addon-fit.js"
+  sed -i -E 's/-9{4}/-9998/g' "$SCRIPT_DIR/web/vendor/xterm.js"
 )
 rm -rf "$TMP_DIR"
 echo "File vendor xterm berhasil disimpan di web/vendor/"
