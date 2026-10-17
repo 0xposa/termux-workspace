@@ -495,21 +495,36 @@
     const key = btn.dataset.key;
     if (key === 'Ctrl') {
       setCtrl(!ctrlActive);
-    } else if (key === 'Alt') {
-      setAlt(!altActive);
-    } else if (key === 'Esc') {
-      sendToActiveTerminal('\x1b');
-    } else if (key === 'Tab') {
-      sendToActiveTerminal('\t');
-    } else if (key === 'Left') {
-      sendToActiveTerminal('\x1b[D');
-    } else if (key === 'Up') {
-      sendToActiveTerminal('\x1b[A');
-    } else if (key === 'Down') {
-      sendToActiveTerminal('\x1b[B');
-    } else if (key === 'Right') {
-      sendToActiveTerminal('\x1b[C');
+      return;
     }
+    if (key === 'Alt') {
+      setAlt(!altActive);
+      return;
+    }
+
+    let code = '';
+    if (key === 'Esc') {
+      code = '\x1b';
+    } else if (key === 'Tab') {
+      code = '\t';
+    } else if (key === 'Left') {
+      code = ctrlActive ? '\x1b[1;5D' : (altActive ? '\x1b[1;3D' : '\x1b[D');
+    } else if (key === 'Up') {
+      code = ctrlActive ? '\x1b[1;5A' : (altActive ? '\x1b[1;3A' : '\x1b[A');
+    } else if (key === 'Down') {
+      code = ctrlActive ? '\x1b[1;5B' : (altActive ? '\x1b[1;3B' : '\x1b[B');
+    } else if (key === 'Right') {
+      code = ctrlActive ? '\x1b[1;5C' : (altActive ? '\x1b[1;3C' : '\x1b[C');
+    }
+
+    if (code) {
+      if (altActive && !code.startsWith('\x1b[1;3')) {
+        code = '\x1b' + code;
+      }
+      sendToActiveTerminal(code);
+    }
+    setCtrl(false);
+    setAlt(false);
   });
 
   // --- Sidebar Explorer Tree ---
