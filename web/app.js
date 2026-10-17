@@ -380,7 +380,12 @@
       if (activeTabEl) {
         activeTabEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
       }
-      if (cmEditorView) cmEditorView.focus();
+      if (cmEditorView) {
+        if (typeof cmEditorView.requestMeasure === 'function') {
+          cmEditorView.requestMeasure();
+        }
+        cmEditorView.focus();
+      }
     }, 50);
   }
 
