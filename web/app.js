@@ -16,9 +16,6 @@
   // State Aplikasi
   let sessions = []; // [{id, name}]
   let activeSessionId = null;
-  let splitSessionId = null;
-  let isSplitMode = false;
-  let focusedPanel = 'left'; // 'left' | 'right'
 
   // Sesi terminal aktif di memori: { [id]: { term, fitAddon, ws, container, reconnectCount, reconnectTimer } }
   const terminalInstances = {};
@@ -35,10 +32,7 @@
   const popupItemsContainer = document.getElementById('popup-items');
   const sidebar = document.getElementById('sidebar');
   const btnCollapseSidebar = document.getElementById('btn-collapse-sidebar');
-  const panelLeft = document.getElementById('panel-left');
-  const panelRight = document.getElementById('panel-right');
-  const containerLeft = document.getElementById('terminal-container-left');
-  const containerRight = document.getElementById('terminal-container-right');
+  const terminalContainer = document.getElementById('terminal-container');
   const btnCtrl = document.getElementById('btn-ctrl');
   const btnAlt = document.getElementById('btn-alt');
   const extraKeysBar = document.getElementById('extra-keys-bar');
@@ -128,10 +122,6 @@
       const closedIndex = sessions.findIndex(s => s.id === sessionId);
       sessions = sessions.filter(s => s.id !== sessionId);
 
-      if (splitSessionId === sessionId) {
-        toggleSplitView(false);
-      }
-
       if (activeSessionId === sessionId) {
         if (sessions.length > 0) {
           const nextIndex = Math.min(closedIndex, sessions.length - 1);
@@ -157,6 +147,14 @@
       tab.className = `tab ${isActive ? 'active' : ''}`;
       tab.dataset.id = sess.id;
 
+      const tabIcon = document.createElement('img');
+      tabIcon.className = 'tab-icon';
+      tabIcon.src = '/icons/terminal.svg';
+      tabIcon.width = 14;
+      tabIcon.height = 14;
+      tabIcon.alt = '';
+      tab.appendChild(tabIcon);
+
       const title = document.createElement('span');
       title.className = 'tab-title';
       title.textContent = sess.name;
@@ -165,8 +163,14 @@
       if (isActive) {
         const btnClose = document.createElement('span');
         btnClose.className = 'tab-close';
-        btnClose.textContent = '✕';
         btnClose.title = 'Tutup sesi';
+        const closeIcon = document.createElement('img');
+        closeIcon.className = 'tab-close-icon';
+        closeIcon.src = '/icons/close.svg';
+        closeIcon.width = 10;
+        closeIcon.height = 10;
+        closeIcon.alt = '';
+        btnClose.appendChild(closeIcon);
         btnClose.addEventListener('click', (e) => {
           e.stopPropagation();
           closeSession(sess.id);
@@ -188,16 +192,30 @@
       const isActive = activeTabType === 'editor' && currentEditingPath === fPath;
       tab.className = `tab ${isActive ? 'active' : ''}`;
 
+      const tabIcon = document.createElement('img');
+      tabIcon.className = 'tab-icon';
+      tabIcon.src = '/icons/file.svg';
+      tabIcon.width = 14;
+      tabIcon.height = 14;
+      tabIcon.alt = '';
+      tab.appendChild(tabIcon);
+
       const title = document.createElement('span');
       title.className = 'tab-title';
-      title.textContent = `📄 ${fileData.name}${fileData.isDirty ? ' ●' : ''}`;
+      title.textContent = `${fileData.name}${fileData.isDirty ? ' ●' : ''}`;
       tab.appendChild(title);
 
       if (isActive) {
         const btnClose = document.createElement('span');
         btnClose.className = 'tab-close';
-        btnClose.textContent = '✕';
         btnClose.title = 'Tutup file';
+        const closeIcon = document.createElement('img');
+        closeIcon.className = 'tab-close-icon';
+        closeIcon.src = '/icons/close.svg';
+        closeIcon.width = 10;
+        closeIcon.height = 10;
+        closeIcon.alt = '';
+        btnClose.appendChild(closeIcon);
         btnClose.addEventListener('click', (e) => {
           e.stopPropagation();
           closeFile(fPath);
@@ -230,16 +248,7 @@
       }
     }, 50);
 
-    if (isSplitMode) {
-      if (focusedPanel === 'left') {
-        mountTerminal(activeSessionId, containerLeft);
-      } else {
-        splitSessionId = activeSessionId;
-        mountTerminal(splitSessionId, containerRight);
-      }
-    } else {
-      mountTerminal(activeSessionId, containerLeft);
-    }
+    mountTerminal(activeSessionId, terminalContainer);
   }
 
   // --- Fungsi Code Editor (CodeMirror 6) ---
@@ -573,10 +582,11 @@
   }
 
   function mountTerminal(sessionId, targetContainer) {
+    const target = targetContainer || terminalContainer;
     const instance = getOrCreateTerminal(sessionId);
-    if (!targetContainer.contains(instance.termWrap)) {
-      targetContainer.innerHTML = '';
-      targetContainer.appendChild(instance.termWrap);
+    if (!target.contains(instance.termWrap)) {
+      target.innerHTML = '';
+      target.appendChild(instance.termWrap);
     }
     setTimeout(() => {
       try {
@@ -604,22 +614,21 @@
     delete terminalInstances[sessionId];
   }
 
-  // Observer resize untuk panel
+  // Observer resize untuk terminal
   const resizeObserver = new ResizeObserver(() => {
-    [activeSessionId, splitSessionId].forEach(sid => {
-      if (sid && terminalInstances[sid]) {
-        try {
-          terminalInstances[sid].fitAddon.fit();
-          const { cols, rows } = terminalInstances[sid].term;
-          if (terminalInstances[sid].ws && terminalInstances[sid].ws.readyState === WebSocket.OPEN) {
-            terminalInstances[sid].ws.send(JSON.stringify({ type: 'resize', cols, rows }));
-          }
-        } catch (e) {}
-      }
-    });
+    if (activeSessionId && terminalInstances[activeSessionId]) {
+      try {
+        terminalInstances[activeSessionId].fitAddon.fit();
+        const { cols, rows } = terminalInstances[activeSessionId].term;
+        if (terminalInstances[activeSessionId].ws && terminalInstances[activeSessionId].ws.readyState === WebSocket.OPEN) {
+          terminalInstances[activeSessionId].ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+        }
+      } catch (e) {}
+    }
   });
-  resizeObserver.observe(containerLeft);
-  resizeObserver.observe(containerRight);
+  if (terminalContainer) {
+    resizeObserver.observe(terminalContainer);
+  }
 
   // --- Tombol Tambah & Menu Popup ---
   btnAddSession.addEventListener('click', (e) => {
@@ -630,6 +639,16 @@
   function togglePopupMenu(forceState) {
     const show = forceState !== undefined ? forceState : popupMenu.classList.contains('hidden');
     if (show) {
+      const btnRect = btnAddSession.getBoundingClientRect();
+      const mainRect = document.querySelector('.main-area').getBoundingClientRect();
+      let left = btnRect.left - mainRect.left;
+      if (left + 240 > mainRect.width) {
+        left = Math.max(8, mainRect.width - 248);
+      }
+      popupMenu.style.left = `${Math.max(8, left)}px`;
+      popupMenu.style.top = `${btnRect.bottom - mainRect.top + 6}px`;
+      popupMenu.style.right = 'auto';
+
       popupMenu.classList.remove('hidden');
       popupSearchInput.value = '';
       filterPopupActions('');
@@ -649,7 +668,6 @@
   const popupActions = [
     { id: 'terminal', name: 'Terminal', action: () => { createNewSession(); togglePopupMenu(false); } },
     { id: 'explorer', name: 'Explorer', action: () => { toggleSidebar(); togglePopupMenu(false); } },
-    { id: 'split', name: 'Split View', action: () => { toggleSplitView(); togglePopupMenu(false); } },
     { id: 'close', name: 'Close Tab', action: () => { if (activeSessionId) closeSession(activeSessionId); togglePopupMenu(false); } }
   ];
 
@@ -658,12 +676,7 @@
     popupItemsContainer.innerHTML = '';
     const filtered = popupActions.filter(a => a.name.toLowerCase().includes(q));
 
-    filtered.forEach((act, idx) => {
-      if (act.id === 'split' && idx > 0) {
-        const sep = document.createElement('div');
-        sep.className = 'popup-separator';
-        popupItemsContainer.appendChild(sep);
-      }
+    filtered.forEach((act) => {
       const item = document.createElement('div');
       item.className = 'popup-item';
       item.textContent = act.name;
@@ -693,62 +706,16 @@
     }
   });
 
-  // --- Split View ---
-  function toggleSplitView(forceState) {
-    isSplitMode = forceState !== undefined ? forceState : !isSplitMode;
-    if (isSplitMode) {
-      panelRight.classList.remove('hidden');
-      panelLeft.classList.add('split-mode');
-      panelRight.classList.add('split-mode');
-
-      // Tentukan sesi kanan (pilih sesi lain atau buat baru)
-      const other = sessions.find(s => s.id !== activeSessionId);
-      if (other) {
-        splitSessionId = other.id;
-        mountTerminal(splitSessionId, containerRight);
-      } else {
-        apiFetch('/api/sessions', { method: 'POST' }).then(res => res.json()).then(newSess => {
-          sessions.push(newSess);
-          renderTabs();
-          splitSessionId = newSess.id;
-          mountTerminal(splitSessionId, containerRight);
-        });
-      }
-    } else {
-      panelRight.classList.add('hidden');
-      panelLeft.classList.remove('split-mode');
-      panelRight.classList.remove('split-mode');
-      splitSessionId = null;
-      focusedPanel = 'left';
-      mountTerminal(activeSessionId, containerLeft);
-    }
-  }
-
-  panelLeft.addEventListener('click', () => {
-    focusedPanel = 'left';
-    panelLeft.classList.add('active-panel');
-    panelRight.classList.remove('active-panel');
-    if (activeSessionId && terminalInstances[activeSessionId]) {
-      terminalInstances[activeSessionId].term.focus();
-    }
-  });
-
-  panelRight.addEventListener('click', () => {
-    focusedPanel = 'right';
-    panelRight.classList.add('active-panel');
-    panelLeft.classList.remove('active-panel');
-    if (splitSessionId && terminalInstances[splitSessionId]) {
-      terminalInstances[splitSessionId].term.focus();
-    }
-  });
-
   // --- Sidebar Explorer ---
   function toggleSidebar(forceState) {
     const isCollapsed = forceState !== undefined ? !forceState : !sidebar.classList.contains('collapsed');
+    const collapseImg = btnCollapseSidebar.querySelector('img');
     if (isCollapsed) {
       sidebar.classList.add('collapsed');
+      if (collapseImg) collapseImg.src = '/icons/arrow-right.svg';
     } else {
       sidebar.classList.remove('collapsed');
+      if (collapseImg) collapseImg.src = '/icons/arrow-left.svg';
     }
   }
 
@@ -768,9 +735,8 @@
   }
 
   function sendToActiveTerminal(text) {
-    const sid = (isSplitMode && focusedPanel === 'right') ? splitSessionId : activeSessionId;
-    if (sid && terminalInstances[sid]) {
-      const inst = terminalInstances[sid];
+    if (activeSessionId && terminalInstances[activeSessionId]) {
+      const inst = terminalInstances[activeSessionId];
       if (inst.ws && inst.ws.readyState === WebSocket.OPEN) {
         inst.ws.send(text);
       }
@@ -1112,12 +1078,26 @@
 
         const arrow = document.createElement('span');
         arrow.className = 'tree-arrow';
-        arrow.textContent = item.type === 'dir' ? '▶' : ' ';
+        if (item.type === 'dir') {
+          const arrowImg = document.createElement('img');
+          arrowImg.className = 'tree-arrow-img';
+          arrowImg.src = '/icons/arrow-right.svg';
+          arrowImg.width = 10;
+          arrowImg.height = 10;
+          arrowImg.alt = '';
+          arrow.appendChild(arrowImg);
+        }
         row.appendChild(arrow);
 
         const icon = document.createElement('span');
         icon.className = 'tree-icon';
-        icon.textContent = item.type === 'dir' ? '📁' : '📄';
+        const iconImg = document.createElement('img');
+        iconImg.className = 'tree-icon-img';
+        iconImg.src = item.type === 'dir' ? '/icons/folder.svg' : '/icons/file.svg';
+        iconImg.width = 15;
+        iconImg.height = 15;
+        iconImg.alt = '';
+        icon.appendChild(iconImg);
         row.appendChild(icon);
 
         const name = document.createElement('span');
@@ -1125,11 +1105,17 @@
         name.textContent = item.name;
         row.appendChild(name);
 
-        // Tombol Titik Tiga (⋮) untuk Menu Opsi
+        // Tombol Titik Tiga untuk Menu Opsi
         const dots = document.createElement('span');
         dots.className = 'tree-dots';
-        dots.textContent = '⋮';
         dots.title = 'Menu opsi';
+        const dotsImg = document.createElement('img');
+        dotsImg.className = 'tree-dots-img';
+        dotsImg.src = '/icons/dots.svg';
+        dotsImg.width = 14;
+        dotsImg.height = 14;
+        dotsImg.alt = '';
+        dots.appendChild(dotsImg);
         dots.addEventListener('click', (e) => {
           e.stopPropagation();
           showContextMenu(e, item);
@@ -1148,16 +1134,17 @@
           row.addEventListener('click', async (e) => {
             e.stopPropagation();
             const isExpanded = children.style.display === 'flex';
+            const arrowImg = arrow.querySelector('.tree-arrow-img');
             if (isExpanded) {
               children.style.display = 'none';
-              arrow.textContent = '▶';
+              if (arrowImg) arrowImg.src = '/icons/arrow-right.svg';
             } else {
               if (!loaded) {
                 await renderExplorerLevel(children, item.path, depth + 1);
                 loaded = true;
               }
               children.style.display = 'flex';
-              arrow.textContent = '▼';
+              if (arrowImg) arrowImg.src = '/icons/arrow-down.svg';
             }
           });
         } else {

@@ -13,7 +13,9 @@
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-header">
         <span class="sidebar-title">Explorer</span>
-        <button id="btn-collapse-sidebar" class="btn-icon" title="Lipat sidebar">«</button>
+        <button id="btn-collapse-sidebar" class="btn-icon" title="Lipat sidebar">
+          <img src="/icons/arrow-left.svg" width="14" height="14" alt="" />
+        </button>
       </div>
       <div id="file-tree" class="file-tree"></div>
     </aside>
@@ -23,9 +25,7 @@
       <!-- Bar Tab -->
       <div class="tab-bar">
         <div id="tabs-container" class="tabs-container"></div>
-        <div class="tab-actions">
-          <button id="btn-add-session" class="btn-add" title="New Session">+</button>
-        </div>
+        <button id="btn-add-session" class="btn-add" title="New Session">+</button>
       </div>
 
       <!-- Menu Popup New Session -->
@@ -34,8 +34,6 @@
         <div id="popup-items" class="popup-items">
           <div class="popup-item" data-action="terminal">Terminal</div>
           <div class="popup-item" data-action="explorer">Explorer</div>
-          <div class="popup-separator"></div>
-          <div class="popup-item" data-action="split">Split View</div>
         </div>
         <div class="popup-search-box">
           <input type="text" id="popup-search-input" placeholder="Search/shortcut..." autocomplete="off">
@@ -45,12 +43,7 @@
 
       <!-- Area Terminal -->
       <div id="terminal-area" class="terminal-area">
-        <div id="panel-left" class="terminal-panel active-panel">
-          <div id="terminal-container-left" class="terminal-container"></div>
-        </div>
-        <div id="panel-right" class="terminal-panel hidden">
-          <div id="terminal-container-right" class="terminal-container"></div>
-        </div>
+        <div id="terminal-container" class="terminal-container"></div>
       </div>
 
       <!-- Area Code Editor -->
@@ -61,8 +54,14 @@
             <span id="editor-status" class="editor-status">Tersimpan</span>
           </div>
           <div class="editor-toolbar-actions">
-            <button id="btn-save-file" class="editor-btn" title="Simpan file (Ctrl+S)">💾 Simpan</button>
-            <button id="btn-send-to-terminal" class="editor-btn" title="Kirim path file ke terminal aktif">&gt;_ Ke Terminal</button>
+            <button id="btn-save-file" class="editor-btn" title="Simpan file (Ctrl+S)">
+              <img src="/icons/save.svg" width="14" height="14" class="editor-btn-icon" alt="" />
+              Simpan
+            </button>
+            <button id="btn-send-to-terminal" class="editor-btn" title="Kirim path file ke terminal aktif">
+              <img src="/icons/terminal.svg" width="14" height="14" class="editor-btn-icon" alt="" />
+              Ke Terminal
+            </button>
             <span id="editor-cursor-pos" class="editor-cursor-pos">Ln 1, Col 1</span>
           </div>
         </div>
@@ -86,21 +85,26 @@
   <!-- Context Menu Explorer (Titik Tiga) -->
   <div id="explorer-context-menu" class="explorer-context-menu hidden">
     <div class="context-menu-item" data-action="open-terminal">
-      <span class="context-menu-icon">&gt;_</span> Open in terminal
+      <img src="/icons/terminal.svg" class="context-menu-icon" width="16" height="16" alt="" />
+      Open in terminal
     </div>
     <div class="context-menu-item" data-action="open-editor">
-      <span class="context-menu-icon">📄</span> Open in editor
+      <img src="/icons/file.svg" class="context-menu-icon" width="16" height="16" alt="" />
+      Open in editor
     </div>
     <div class="context-menu-separator"></div>
     <div class="context-menu-item" data-action="rename">
-      <span class="context-menu-icon">✏️</span> Rename
+      <img src="/icons/edit.svg" class="context-menu-icon" width="16" height="16" alt="" />
+      Rename
     </div>
     <div class="context-menu-item" data-action="move">
-      <span class="context-menu-icon">📦</span> Move
+      <img src="/icons/move.svg" class="context-menu-icon" width="16" height="16" alt="" />
+      Move
     </div>
     <div class="context-menu-separator"></div>
     <div class="context-menu-item danger" data-action="delete">
-      <span class="context-menu-icon">🗑️</span> Delete
+      <img src="/icons/trash.svg" class="context-menu-icon" width="16" height="16" alt="" />
+      Delete
     </div>
   </div>
 
