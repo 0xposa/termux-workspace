@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+.termux-workspace/
+.gradle/
+build/
+app/build/
+local.properties
+.idea/
+*.iml
