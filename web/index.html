@@ -26,6 +26,18 @@
       <div class="tab-bar">
         <div id="tabs-container" class="tabs-container"></div>
         <button id="btn-add-session" class="btn-add" title="New Session">+</button>
+        <div id="editor-actions-bar" class="editor-actions-bar hidden">
+          <span id="editor-status" class="editor-status">Tersimpan</span>
+          <span id="editor-cursor-pos" class="editor-cursor-pos">Ln 1, Col 1</span>
+          <button id="btn-save-file" class="editor-btn" title="Simpan file (Ctrl+S)">
+            <img src="/icons/save.svg" width="14" height="14" class="editor-btn-icon" alt="" />
+            <span class="btn-text">Simpan</span>
+          </button>
+          <button id="btn-send-to-terminal" class="editor-btn" title="Kirim path file ke terminal aktif">
+            <img src="/icons/terminal.svg" width="14" height="14" class="editor-btn-icon" alt="" />
+            <span class="btn-text">Ke Terminal</span>
+          </button>
+        </div>
       </div>
 
       <!-- Menu Popup New Session -->
@@ -46,25 +58,8 @@
         <div id="terminal-container" class="terminal-container"></div>
       </div>
 
-      <!-- Area Code Editor -->
+      <!-- Area Code Editor Full View -->
       <div id="editor-area" class="editor-area hidden">
-        <div class="editor-toolbar">
-          <div class="editor-file-info">
-            <span id="editor-filename" class="editor-filename">untitled</span>
-            <span id="editor-status" class="editor-status">Tersimpan</span>
-          </div>
-          <div class="editor-toolbar-actions">
-            <button id="btn-save-file" class="editor-btn" title="Simpan file (Ctrl+S)">
-              <img src="/icons/save.svg" width="14" height="14" class="editor-btn-icon" alt="" />
-              Simpan
-            </button>
-            <button id="btn-send-to-terminal" class="editor-btn" title="Kirim path file ke terminal aktif">
-              <img src="/icons/terminal.svg" width="14" height="14" class="editor-btn-icon" alt="" />
-              Ke Terminal
-            </button>
-            <span id="editor-cursor-pos" class="editor-cursor-pos">Ln 1, Col 1</span>
-          </div>
-        </div>
         <div id="editor-cm-container" class="editor-cm-container"></div>
       </div>
 

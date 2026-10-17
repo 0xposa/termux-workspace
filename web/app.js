@@ -45,7 +45,7 @@
 
   const editorArea = document.getElementById('editor-area');
   const terminalArea = document.getElementById('terminal-area');
-  const editorFilename = document.getElementById('editor-filename');
+  const editorActionsBar = document.getElementById('editor-actions-bar');
   const editorStatus = document.getElementById('editor-status');
   const editorCmContainer = document.getElementById('editor-cm-container');
   const editorCursorPos = document.getElementById('editor-cursor-pos');
@@ -238,6 +238,7 @@
 
     editorArea.classList.add('hidden');
     terminalArea.classList.remove('hidden');
+    if (editorActionsBar) editorActionsBar.classList.add('hidden');
 
     renderTabs();
 
@@ -365,13 +366,10 @@
     activeTabType = 'editor';
     currentEditingPath = filePath;
 
-    // Editor muncul secara FULL bukan split screen
-    sidebar.classList.add('collapsed');
     terminalArea.classList.add('hidden');
     editorArea.classList.remove('hidden');
+    if (editorActionsBar) editorActionsBar.classList.remove('hidden');
 
-    editorFilename.textContent = fileData.name;
-    editorFilename.title = filePath;
     updateCM6Editor(fileData.content, fileData.name);
     updateEditorStatus();
     updateCursorPos();
@@ -382,10 +380,12 @@
       if (activeTabEl) {
         activeTabEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
       }
+      if (cmEditorView) cmEditorView.focus();
     }, 50);
   }
 
   function updateEditorStatus() {
+    if (!editorStatus) return;
     const fileData = openFiles[currentEditingPath];
     if (!fileData) return;
     if (fileData.isDirty) {
@@ -398,7 +398,7 @@
   }
 
   function updateCursorPos() {
-    if (!cmEditorView) return;
+    if (!cmEditorView || !editorCursorPos) return;
     try {
       const pos = cmEditorView.state.selection.main.head;
       const line = cmEditorView.state.doc.lineAt(pos);
@@ -423,6 +423,13 @@
         openFiles[currentEditingPath].isDirty = false;
         updateEditorStatus();
         renderTabs();
+        if (btnSaveFile) {
+          const originalHtml = btnSaveFile.innerHTML;
+          btnSaveFile.innerHTML = `<img src="/icons/save.svg" width="14" height="14" class="editor-btn-icon" alt="" /><span class="btn-text">Tersimpan</span>`;
+          setTimeout(() => {
+            btnSaveFile.innerHTML = originalHtml;
+          }, 1500);
+        }
       } else {
         const err = await res.json().catch(() => ({ detail: 'Gagal menyimpan file' }));
         console.error(err.detail || 'Gagal menyimpan file');
@@ -961,8 +968,6 @@
               delete openFiles[targetItem.path];
               if (currentEditingPath === targetItem.path) {
                 currentEditingPath = data.new_path;
-                editorFilename.textContent = newName;
-                editorFilename.title = data.new_path;
               }
               renderTabs();
             }
@@ -997,7 +1002,6 @@
               delete openFiles[targetItem.path];
               if (currentEditingPath === targetItem.path) {
                 currentEditingPath = data.destination;
-                editorFilename.title = data.destination;
               }
               renderTabs();
             }

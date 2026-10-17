@@ -165,9 +165,22 @@ body, html {
   align-items: center;
   gap: 4px;
   overflow-x: auto;
-  max-width: calc(100% - 36px);
   flex: 0 1 auto;
+  min-width: 0;
   height: 100%;
+}
+
+.editor-actions-bar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-left: 8px;
+}
+
+.editor-actions-bar.hidden {
+  display: none;
 }
 
 .tabs-container::-webkit-scrollbar {
@@ -410,12 +423,14 @@ body, html {
   font-weight: bold;
 }
 
-/* Area Code Editor */
+/* Area Code Editor Full View */
 .editor-area {
   flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
   overflow: hidden;
   background-color: #14161C;
   position: relative;
@@ -425,62 +440,20 @@ body, html {
   display: none;
 }
 
-.editor-toolbar {
-  height: 38px;
-  background-color: #1E222B;
-  border-bottom: 1px solid #2B303B;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  font-size: 13px;
-  user-select: none;
-}
-
-.editor-file-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  overflow: hidden;
-}
-
-.editor-filename {
-  font-weight: bold;
-  color: #E6E8EC;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.editor-status {
-  font-size: 11px;
-  color: #8E95A5;
-}
-
-.editor-status.unsaved {
-  color: #5EF0B4;
-  font-weight: bold;
-}
-
-.editor-toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
 .editor-btn {
   background-color: #14161C;
   border: 1px solid #2B303B;
   border-radius: 4px;
   color: #E6E8EC;
-  padding: 4px 10px;
+  padding: 4px 8px;
   font-family: inherit;
   font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 4px;
+  height: 26px;
+  white-space: nowrap;
 }
 
 .editor-btn:hover {
@@ -489,23 +462,44 @@ body, html {
   color: #5EF0B4;
 }
 
+.editor-btn-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+  flex-shrink: 0;
+}
+
 .editor-cursor-pos {
   font-size: 11px;
   color: #8E95A5;
-  margin-left: 4px;
   white-space: nowrap;
+}
+
+.editor-status {
+  font-size: 11px;
+  color: #8E95A5;
+  white-space: nowrap;
+}
+
+.editor-status.unsaved {
+  color: #5EF0B4;
+  font-weight: bold;
 }
 
 .editor-cm-container {
   flex: 1;
+  width: 100%;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   position: relative;
   background-color: #14161C;
 }
 
 .cm-editor {
-  height: 100%;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
   font-family: monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
   font-size: 14px !important;
   background-color: #14161C !important;
@@ -517,14 +511,31 @@ body, html {
 
 .cm-scroller {
   overflow: auto !important;
+  height: 100% !important;
   font-family: inherit !important;
   line-height: 22px !important;
+}
+
+.cm-content {
+  min-height: 100% !important;
+  padding: 4px 8px !important;
+  box-sizing: border-box !important;
 }
 
 .cm-gutters {
   background-color: #1E222B !important;
   border-right: 1px solid #2B303B !important;
   color: #8E95A5 !important;
+  min-height: 100% !important;
+}
+
+@media (max-width: 520px) {
+  .editor-btn .btn-text {
+    display: none;
+  }
+  .editor-status {
+    display: none;
+  }
 }
 
 .tree-dots {
