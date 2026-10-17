@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.TermuxWorkspace" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/background_terminal</item>
+        <item name="android:statusBarColor">@color/background_bar</item>
+        <item name="android:navigationBarColor">@color/background_bar</item>
+    </style>
+</resources>
