@@ -128,7 +128,7 @@ def list_tmux_sessions() -> list[dict]:
             sessions.append({"id": sess_id, "name": name})
     def sort_key(s):
         m = re.match(r"^ws-(\d+)$", s["id"])
-        return int(m.group(1)) if m else 999999
+        return int(m.group(1)) if m else 100000
     sessions.sort(key=sort_key)
     return sessions
 
