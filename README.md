@@ -19,11 +19,11 @@ Termux Workspace terdiri dari 3 komponen utama:
 2. **Antarmuka Web (Frontend Vanilla JS & CSS)**:
    - Layar tablet tema gelap (`#14161C`, `#1E222B`, `#E6E8EC`).
    - Terminal xterm.js dengan FitAddon lokal di `web/vendor/` (tanpa CDN).
-   - Sidebar Explorer: pohon direktori yang bisa dilipat (`«`), mulai dari HOME, memuat saat folder dibuka, klik file untuk mengirim path ke terminal aktif.
+   - Sidebar Explorer: pohon direktori yang bisa dilipat (`«`), mulai dari HOME, memuat saat folder dibuka, tombol titik tiga (`⋮`) untuk menu opsi (Open in terminal, Open in editor, Rename, Move, Delete).
    - Bar Tab: manajemen sesi shell (Bash, Zsh, dll.), tombol tutup `x`, tombol `+` dengan gradien `#5EF0B4` ke `#C86DFF`.
    - Menu Popup & Pencarian: aksi Terminal, Explorer, Split View, pencarian aksi / shortcut `Ctrl + K`.
    - Split View: membagi layar menjadi 2 terminal berdampingan.
-   - Code Editor Terintegrasi: Klik file di Explorer untuk membuka editor di tab baru dengan penomoran baris, pelacak kursor (Ln/Col), tombol & pintasan Simpan (`Ctrl+S`), indentasi 2-spasi, auto-indent baris baru, dan tombol kirim path ke terminal (`>_`).
+   - Code Editor Full View (CodeMirror 6): Editor teks modern CodeMirror 6 dengan tema One Dark, syntax highlighting (JavaScript, Python, HTML, CSS, JSON, Markdown), pelacak kursor (Ln/Col), tombol & pintasan Simpan (`Ctrl+S`), indentasi tab cerdas, serta tampil secara full view (tanpa split screen).
    - Baris Tombol Ekstra: Esc, Tab, Ctrl (toggle sekali pakai), Alt (toggle sekali pakai), dan panah navigasi (←, ↑, ↓, →).
 3. **Aplikasi Android Kotlin Add-on**:
    - Application ID: `com.workspace.termuxui`.
@@ -107,11 +107,11 @@ Termux Workspace consists of three core components:
 2. **Web Interface (Vanilla JS, HTML, CSS)**:
    - Dark theme tablet interface (`#14161C`, `#1E222B`, `#E6E8EC`).
    - Powered by `@xterm/xterm` and `@xterm/addon-fit` stored locally in `web/vendor/` (100% offline, zero CDN).
-   - Collapsible Sidebar Explorer (`«`), starting at HOME, folder on-demand loading, tap file to insert shell-escaped path.
+   - Collapsible Sidebar Explorer (`«`), starting at HOME, folder on-demand loading, three-dots context menu (`⋮`) on files & folders (Open in terminal, Open in editor, Rename, Move, Delete).
    - Session Tab Bar: active tab close button `x`, gradient `+` button (`#5EF0B4` to `#C86DFF`).
    - Popup Menu with action filtering and `Ctrl + K` shortcut.
    - Split View: two side-by-side terminal panels with independent focus.
-   - Built-in Code Editor: Opening files from the Explorer into dedicated editor tabs, complete with line numbering, cursor position tracker (Ln/Col), save button & shortcut (`Ctrl+S`), 2-space tab indentation, auto-indentation, and a quick send-path-to-terminal (`>_`) button.
+   - Full-View Code Editor (CodeMirror 6): Modern CodeMirror 6 text editor with One Dark theme, syntax highlighting (JavaScript, Python, HTML, CSS, JSON, Markdown), cursor position tracker (Ln/Col), save button & shortcut (`Ctrl+S`), smart tab indentation, opening in distraction-free full view (no split screen).
    - Extra Keys Toolbar: Esc, Tab, single-use toggle Ctrl/Alt, and navigation arrows (←, ↑, ↓, →).
 3. **Android Kotlin Add-on Application**:
    - Application ID: `com.workspace.termuxui`.

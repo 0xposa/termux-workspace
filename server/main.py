@@ -255,6 +255,11 @@ async def get_file_content(path: str):
         raise HTTPException(status_code=400, detail="File terlalu besar (> 5MB)")
 
     try:
+        with open(real_target, "rb") as bf:
+            chunk = bf.read(8192)
+            if b"\x00" in chunk:
+                raise HTTPException(status_code=400, detail="File adalah file biner dan tidak dapat diedit di editor")
+
         with open(real_target, "r", encoding="utf-8", errors="replace") as f:
             content = f.read()
         return {
@@ -264,6 +269,8 @@ async def get_file_content(path: str):
         }
     except PermissionError:
         raise HTTPException(status_code=403, detail="Izin baca file ditolak")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -288,6 +295,125 @@ async def save_file_content(req: FileSaveRequest):
         return {"ok": True, "path": real_target}
     except PermissionError:
         raise HTTPException(status_code=403, detail="Izin tulis file ditolak")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class RenameRequest(BaseModel):
+    path: str
+    new_name: str
+
+@app.post("/api/fs/rename")
+async def rename_fs_item(req: RenameRequest):
+    home_dir = os.path.realpath(os.environ.get("HOME", "/data/data/com.termux/files/home"))
+    storage_dir = os.path.realpath("/storage/emulated/0")
+    real_target = os.path.realpath(req.path)
+
+    def is_subpath(p: str, parent: str) -> bool:
+        try:
+            return os.path.commonpath([p, parent]) == parent
+        except ValueError:
+            return False
+
+    if not (is_subpath(real_target, home_dir) or is_subpath(real_target, storage_dir)):
+        raise HTTPException(status_code=403, detail="Akses ditolak")
+
+    if real_target == home_dir or real_target == storage_dir:
+        raise HTTPException(status_code=400, detail="Tidak dapat mengubah nama direktori root")
+
+    if not os.path.exists(real_target):
+        raise HTTPException(status_code=404, detail="File atau folder tidak ditemukan")
+
+    clean_name = os.path.basename(req.new_name.strip())
+    if not clean_name or clean_name != req.new_name.strip() or "/" in req.new_name or "\\" in req.new_name or ".." in req.new_name:
+        raise HTTPException(status_code=400, detail="Nama baru tidak valid")
+
+    parent_dir = os.path.dirname(real_target)
+    dest_path = os.path.join(parent_dir, clean_name)
+
+    if os.path.exists(dest_path):
+        raise HTTPException(status_code=400, detail=f"'{clean_name}' sudah ada")
+
+    try:
+        os.rename(real_target, dest_path)
+        return {"ok": True, "old_path": real_target, "new_path": dest_path}
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Izin mengubah nama ditolak")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class MoveRequest(BaseModel):
+    source: str
+    destination: str
+
+@app.post("/api/fs/move")
+async def move_fs_item(req: MoveRequest):
+    home_dir = os.path.realpath(os.environ.get("HOME", "/data/data/com.termux/files/home"))
+    storage_dir = os.path.realpath("/storage/emulated/0")
+    real_source = os.path.realpath(req.source)
+    real_dest = os.path.realpath(req.destination)
+
+    def is_subpath(p: str, parent: str) -> bool:
+        try:
+            return os.path.commonpath([p, parent]) == parent
+        except ValueError:
+            return False
+
+    if not (is_subpath(real_source, home_dir) or is_subpath(real_source, storage_dir)):
+        raise HTTPException(status_code=403, detail="Akses sumber ditolak")
+    if not (is_subpath(real_dest, home_dir) or is_subpath(real_dest, storage_dir)):
+        raise HTTPException(status_code=403, detail="Akses tujuan ditolak")
+
+    if real_source == home_dir or real_source == storage_dir:
+        raise HTTPException(status_code=400, detail="Tidak dapat memindahkan direktori root")
+
+    if not os.path.exists(real_source):
+        raise HTTPException(status_code=404, detail="File atau folder sumber tidak ditemukan")
+
+    if os.path.isdir(real_dest):
+        final_dest = os.path.join(real_dest, os.path.basename(real_source))
+    else:
+        final_dest = real_dest
+
+    if os.path.exists(final_dest):
+        raise HTTPException(status_code=400, detail="Target tujuan sudah ada")
+
+    try:
+        shutil.move(real_source, final_dest)
+        return {"ok": True, "source": real_source, "destination": final_dest}
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Izin memindahkan file ditolak")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/fs")
+async def delete_fs_item(path: str):
+    home_dir = os.path.realpath(os.environ.get("HOME", "/data/data/com.termux/files/home"))
+    storage_dir = os.path.realpath("/storage/emulated/0")
+    real_target = os.path.realpath(path)
+
+    def is_subpath(p: str, parent: str) -> bool:
+        try:
+            return os.path.commonpath([p, parent]) == parent
+        except ValueError:
+            return False
+
+    if not (is_subpath(real_target, home_dir) or is_subpath(real_target, storage_dir)):
+        raise HTTPException(status_code=403, detail="Akses ditolak")
+
+    if real_target == home_dir or real_target == storage_dir:
+        raise HTTPException(status_code=400, detail="Tidak dapat menghapus direktori root")
+
+    if not os.path.exists(real_target):
+        raise HTTPException(status_code=404, detail="File atau folder tidak ditemukan")
+
+    try:
+        if os.path.isdir(real_target):
+            shutil.rmtree(real_target)
+        else:
+            os.remove(real_target)
+        return {"ok": True, "path": real_target}
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Izin menghapus ditolak")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
