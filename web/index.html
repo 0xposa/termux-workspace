@@ -66,10 +66,7 @@
             <span id="editor-cursor-pos" class="editor-cursor-pos">Ln 1, Col 1</span>
           </div>
         </div>
-        <div class="editor-body">
-          <div id="editor-line-numbers" class="editor-line-numbers">1</div>
-          <textarea id="editor-textarea" class="editor-textarea" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
-        </div>
+        <div id="editor-cm-container" class="editor-cm-container"></div>
       </div>
 
       <!-- Baris Tombol Ekstra -->
@@ -86,8 +83,45 @@
     </div>
   </div>
 
+  <!-- Context Menu Explorer (Titik Tiga) -->
+  <div id="explorer-context-menu" class="explorer-context-menu hidden">
+    <div class="context-menu-item" data-action="open-terminal">
+      <span class="context-menu-icon">&gt;_</span> Open in terminal
+    </div>
+    <div class="context-menu-item" data-action="open-editor">
+      <span class="context-menu-icon">📄</span> Open in editor
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" data-action="rename">
+      <span class="context-menu-icon">✏️</span> Rename
+    </div>
+    <div class="context-menu-item" data-action="move">
+      <span class="context-menu-icon">📦</span> Move
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item danger" data-action="delete">
+      <span class="context-menu-icon">🗑️</span> Delete
+    </div>
+  </div>
+
+  <!-- Modal Dialog Interaktif untuk Operasi File/Folder -->
+  <div id="fs-modal" class="fs-modal hidden">
+    <div class="fs-modal-box">
+      <div id="fs-modal-title" class="fs-modal-title">Judul</div>
+      <div id="fs-modal-body" class="fs-modal-body">
+        <p id="fs-modal-message" class="fs-modal-message"></p>
+        <input type="text" id="fs-modal-input" class="fs-modal-input" autocomplete="off" spellcheck="false" />
+      </div>
+      <div class="fs-modal-actions">
+        <button id="fs-modal-cancel" class="fs-modal-btn cancel">Batal</button>
+        <button id="fs-modal-confirm" class="fs-modal-btn confirm">Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/vendor/xterm.js"></script>
   <script src="/vendor/addon-fit.js"></script>
+  <script src="/vendor/codemirror.bundle.js"></script>
   <script src="/app.js"></script>
 </body>
 </html>

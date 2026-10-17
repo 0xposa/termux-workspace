@@ -487,60 +487,215 @@ body, html {
   white-space: nowrap;
 }
 
-.editor-body {
+.editor-cm-container {
   flex: 1;
-  display: flex;
+  height: 100%;
   overflow: hidden;
   position: relative;
   background-color: #14161C;
 }
 
-.editor-line-numbers {
-  width: 48px;
-  min-width: 48px;
-  background-color: #1E222B;
-  border-right: 1px solid #2B303B;
-  color: #8E95A5;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 22px;
-  padding: 8px 8px 8px 0;
-  text-align: right;
-  user-select: none;
-  overflow: hidden;
-  white-space: pre;
+.cm-editor {
+  height: 100%;
+  font-family: monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+  font-size: 14px !important;
+  background-color: #14161C !important;
 }
 
-.editor-textarea {
-  flex: 1;
-  height: 100%;
+.cm-editor.cm-focused {
+  outline: none !important;
+}
+
+.cm-scroller {
+  overflow: auto !important;
+  font-family: inherit !important;
+  line-height: 22px !important;
+}
+
+.cm-gutters {
+  background-color: #1E222B !important;
+  border-right: 1px solid #2B303B !important;
+  color: #8E95A5 !important;
+}
+
+.tree-dots {
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #8E95A5;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.tree-row:hover .tree-dots, .tree-dots:hover {
+  opacity: 1;
+  color: #E6E8EC;
+  background-color: #2B303B;
+}
+
+/* Context Menu Explorer (Titik Tiga) */
+.explorer-context-menu {
+  position: fixed;
+  background-color: #1E222B;
+  border: 1px solid #2B303B;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  padding: 6px 0;
+  z-index: 1000;
+  min-width: 170px;
+  user-select: none;
+}
+
+.explorer-context-menu.hidden {
+  display: none;
+}
+
+.context-menu-item {
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #E6E8EC;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.context-menu-item:hover:not(.disabled) {
+  background-color: #252A36;
+  color: #5EF0B4;
+}
+
+.context-menu-item.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.context-menu-item.danger:hover:not(.disabled) {
+  background-color: rgba(255, 107, 107, 0.15);
+  color: #FF6B6B;
+}
+
+.context-menu-separator {
+  height: 1px;
+  background-color: #2B303B;
+  margin: 4px 0;
+}
+
+.context-menu-icon {
+  font-size: 13px;
+  width: 16px;
+  text-align: center;
+}
+
+/* Modal Dialog Interaktif Filesystem */
+.fs-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(10, 12, 16, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.fs-modal.hidden {
+  display: none;
+}
+
+.fs-modal-box {
+  background-color: #1E222B;
+  border: 1px solid #2B303B;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 420px;
+  padding: 18px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+}
+
+.fs-modal-title {
+  font-size: 15px;
+  font-weight: bold;
+  color: #E6E8EC;
+  margin-bottom: 12px;
+}
+
+.fs-modal-message {
+  font-size: 13px;
+  color: #8E95A5;
+  margin-bottom: 12px;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.fs-modal-input {
+  width: 100%;
+  box-sizing: border-box;
   background-color: #14161C;
+  border: 1px solid #2B303B;
+  border-radius: 4px;
   color: #E6E8EC;
   font-family: inherit;
   font-size: 14px;
-  line-height: 22px;
   padding: 8px 12px;
-  border: none;
   outline: none;
-  resize: none;
-  white-space: pre;
-  overflow: auto;
-  tab-size: 2;
-  word-break: normal;
+  margin-bottom: 16px;
 }
 
-.tree-action-send {
-  margin-left: auto;
-  font-size: 11px;
-  color: #8E95A5;
-  padding: 1px 5px;
-  border-radius: 3px;
+.fs-modal-input:focus {
+  border-color: #5EF0B4;
+}
+
+.fs-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.fs-modal-btn {
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 13px;
   cursor: pointer;
-  opacity: 0.6;
+  border: none;
 }
 
-.tree-action-send:hover {
-  opacity: 1;
-  color: #5EF0B4;
+.fs-modal-btn.cancel {
   background-color: #2B303B;
+  color: #E6E8EC;
+}
+
+.fs-modal-btn.cancel:hover {
+  background-color: #383E4C;
+}
+
+.fs-modal-btn.confirm {
+  background-color: #5EF0B4;
+  color: #14161C;
+  font-weight: bold;
+}
+
+.fs-modal-btn.confirm:hover {
+  opacity: 0.9;
+}
+
+.fs-modal-btn.danger {
+  background-color: #FF6B6B;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
+.fs-modal-btn.danger:hover {
+  opacity: 0.9;
 }

@@ -43,20 +43,32 @@
   const btnAlt = document.getElementById('btn-alt');
   const extraKeysBar = document.getElementById('extra-keys-bar');
 
-  // State & Elemen DOM Code Editor
+  // State & Elemen DOM Code Editor (CodeMirror 6)
   let activeTabType = 'terminal'; // 'terminal' | 'editor'
   let currentEditingPath = null;
+  let cmEditorView = null;
   const openFiles = {}; // { [path]: { name, content, originalContent, isDirty } }
 
   const editorArea = document.getElementById('editor-area');
   const terminalArea = document.getElementById('terminal-area');
   const editorFilename = document.getElementById('editor-filename');
   const editorStatus = document.getElementById('editor-status');
-  const editorTextarea = document.getElementById('editor-textarea');
-  const editorLineNumbers = document.getElementById('editor-line-numbers');
+  const editorCmContainer = document.getElementById('editor-cm-container');
   const editorCursorPos = document.getElementById('editor-cursor-pos');
   const btnSaveFile = document.getElementById('btn-save-file');
   const btnSendToTerminal = document.getElementById('btn-send-to-terminal');
+
+  // Elemen Context Menu & Modal Filesystem
+  const explorerContextMenu = document.getElementById('explorer-context-menu');
+  let activeContextItem = null; // { path, name, type }
+
+  const fsModal = document.getElementById('fs-modal');
+  const fsModalTitle = document.getElementById('fs-modal-title');
+  const fsModalMessage = document.getElementById('fs-modal-message');
+  const fsModalInput = document.getElementById('fs-modal-input');
+  const fsModalCancel = document.getElementById('fs-modal-cancel');
+  const fsModalConfirm = document.getElementById('fs-modal-confirm');
+  let fsModalResolve = null;
 
   // Helper HTTP fetch dengan token
   async function apiFetch(endpoint, options = {}) {
@@ -221,7 +233,85 @@
     }
   }
 
-  // --- Fungsi Code Editor ---
+  // --- Fungsi Code Editor (CodeMirror 6) ---
+  function isReadableTextFile(filename) {
+    const binaryExts = [
+      '.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp', '.bmp', '.pdf',
+      '.zip', '.tar', '.gz', '.tgz', '.bz2', '.xz', '.7z', '.apk', '.jar',
+      '.so', '.a', '.dylib', '.bin', '.exe', '.pyc', '.wasm', '.mp3',
+      '.mp4', '.m4a', '.wav', '.ogg', '.webm', '.flac', '.avi', '.mkv'
+    ];
+    const lower = filename.toLowerCase();
+    return !binaryExts.some(ext => lower.endsWith(ext));
+  }
+
+  function getLanguageExtension(filename) {
+    if (!window.CM6 || !window.CM6.languages) return [];
+    const parts = filename.split('.');
+    if (parts.length < 2) return [];
+    const ext = parts.pop().toLowerCase();
+    const langFn = window.CM6.languages[ext];
+    if (typeof langFn === 'function') {
+      try {
+        return [langFn()];
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  }
+
+  function updateCM6Editor(content, filename) {
+    if (!window.CM6) {
+      console.error('CodeMirror 6 library belum siap');
+      return;
+    }
+    const { EditorView, EditorState, basicSetup, oneDark, keymap, defaultKeymap, indentWithTab } = window.CM6;
+    const langExt = getLanguageExtension(filename);
+
+    const extensions = [
+      basicSetup,
+      oneDark,
+      keymap.of([
+        ...defaultKeymap,
+        indentWithTab,
+        {
+          key: 'Mod-s',
+          run: () => {
+            saveCurrentFile();
+            return true;
+          }
+        }
+      ]),
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          if (!currentEditingPath || !openFiles[currentEditingPath]) return;
+          const newDoc = cmEditorView.state.doc.toString();
+          openFiles[currentEditingPath].content = newDoc;
+          openFiles[currentEditingPath].isDirty = (newDoc !== openFiles[currentEditingPath].originalContent);
+          updateEditorStatus();
+          renderTabs();
+        }
+        if (update.selectionSet || update.docChanged) {
+          updateCursorPos();
+        }
+      }),
+      ...langExt
+    ];
+
+    if (!cmEditorView) {
+      cmEditorView = new EditorView({
+        state: EditorState.create({ doc: content, extensions }),
+        parent: editorCmContainer
+      });
+    } else {
+      cmEditorView.setState(EditorState.create({ doc: content, extensions }));
+    }
+    setTimeout(() => {
+      if (cmEditorView) cmEditorView.focus();
+    }, 60);
+  }
+
   async function openFileInEditor(filePath) {
     if (openFiles[filePath]) {
       switchToEditor(filePath);
@@ -253,22 +343,17 @@
     activeTabType = 'editor';
     currentEditingPath = filePath;
 
+    // Editor muncul secara FULL bukan split screen
+    sidebar.classList.add('collapsed');
     terminalArea.classList.add('hidden');
     editorArea.classList.remove('hidden');
 
     editorFilename.textContent = fileData.name;
     editorFilename.title = filePath;
-    editorTextarea.value = fileData.content;
-    updateLineNumbers();
+    updateCM6Editor(fileData.content, fileData.name);
     updateEditorStatus();
     updateCursorPos();
     renderTabs();
-    setTimeout(() => editorTextarea.focus(), 50);
-  }
-
-  function updateLineNumbers() {
-    const lines = editorTextarea.value.split('\n').length;
-    editorLineNumbers.textContent = Array.from({ length: lines }, (_, i) => i + 1).join('\n');
   }
 
   function updateEditorStatus() {
@@ -284,16 +369,19 @@
   }
 
   function updateCursorPos() {
-    const text = editorTextarea.value.substring(0, editorTextarea.selectionStart);
-    const lines = text.split('\n');
-    const row = lines.length;
-    const col = lines[lines.length - 1].length + 1;
-    editorCursorPos.textContent = `Ln ${row}, Col ${col}`;
+    if (!cmEditorView) return;
+    try {
+      const pos = cmEditorView.state.selection.main.head;
+      const line = cmEditorView.state.doc.lineAt(pos);
+      const row = line.number;
+      const col = pos - line.from + 1;
+      editorCursorPos.textContent = `Ln ${row}, Col ${col}`;
+    } catch (e) {}
   }
 
   async function saveCurrentFile() {
-    if (!currentEditingPath || !openFiles[currentEditingPath]) return;
-    const content = editorTextarea.value;
+    if (!currentEditingPath || !openFiles[currentEditingPath] || !cmEditorView) return;
+    const content = cmEditorView.state.doc.toString();
     try {
       const res = await apiFetch('/api/fs/content', {
         method: 'PUT',
@@ -333,51 +421,6 @@
       renderTabs();
     }
   }
-
-  // Event listener input & shortcut textarea editor
-  editorTextarea.addEventListener('input', () => {
-    if (!currentEditingPath || !openFiles[currentEditingPath]) return;
-    openFiles[currentEditingPath].content = editorTextarea.value;
-    openFiles[currentEditingPath].isDirty = (editorTextarea.value !== openFiles[currentEditingPath].originalContent);
-    updateLineNumbers();
-    updateEditorStatus();
-    renderTabs();
-  });
-
-  editorTextarea.addEventListener('scroll', () => {
-    editorLineNumbers.scrollTop = editorTextarea.scrollTop;
-  });
-
-  ['click', 'keyup', 'select'].forEach(ev => {
-    editorTextarea.addEventListener(ev, updateCursorPos);
-  });
-
-  editorTextarea.addEventListener('keydown', (e) => {
-    // Tab: sisipkan 2 spasi
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = editorTextarea.selectionStart;
-      const end = editorTextarea.selectionEnd;
-      editorTextarea.value = editorTextarea.value.substring(0, start) + '  ' + editorTextarea.value.substring(end);
-      editorTextarea.selectionStart = editorTextarea.selectionEnd = start + 2;
-      editorTextarea.dispatchEvent(new Event('input'));
-    } else if (e.key === 'Enter') {
-      // Auto-indent baris baru
-      const start = editorTextarea.selectionStart;
-      const currentLine = editorTextarea.value.substring(0, start).split('\n').pop();
-      const indent = currentLine.match(/^\s*/)[0];
-      if (indent.length > 0) {
-        e.preventDefault();
-        const insert = '\n' + indent;
-        editorTextarea.value = editorTextarea.value.substring(0, start) + insert + editorTextarea.value.substring(editorTextarea.selectionEnd);
-        editorTextarea.selectionStart = editorTextarea.selectionEnd = start + insert.length;
-        editorTextarea.dispatchEvent(new Event('input'));
-      }
-    } else if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
-      e.preventDefault();
-      saveCurrentFile();
-    }
-  });
 
   btnSaveFile.addEventListener('click', () => {
     saveCurrentFile();
@@ -728,22 +771,40 @@
       return;
     }
 
-    if (activeTabType === 'editor') {
+    if (activeTabType === 'editor' && cmEditorView) {
       if (key === 'Tab') {
-        const start = editorTextarea.selectionStart;
-        const end = editorTextarea.selectionEnd;
-        editorTextarea.value = editorTextarea.value.substring(0, start) + '  ' + editorTextarea.value.substring(end);
-        editorTextarea.selectionStart = editorTextarea.selectionEnd = start + 2;
-        editorTextarea.dispatchEvent(new Event('input'));
-        editorTextarea.focus();
+        cmEditorView.dispatch(cmEditorView.state.replaceSelection('  '));
+        cmEditorView.focus();
       } else if (key === 'Left') {
-        editorTextarea.selectionStart = editorTextarea.selectionEnd = Math.max(0, editorTextarea.selectionStart - 1);
-        updateCursorPos();
-        editorTextarea.focus();
+        const head = cmEditorView.state.selection.main.head;
+        cmEditorView.dispatch({ selection: { anchor: Math.max(0, head - 1) } });
+        cmEditorView.focus();
       } else if (key === 'Right') {
-        editorTextarea.selectionStart = editorTextarea.selectionEnd = Math.min(editorTextarea.value.length, editorTextarea.selectionStart + 1);
-        updateCursorPos();
-        editorTextarea.focus();
+        const head = cmEditorView.state.selection.main.head;
+        cmEditorView.dispatch({ selection: { anchor: Math.min(cmEditorView.state.doc.length, head + 1) } });
+        cmEditorView.focus();
+      } else if (key === 'Up') {
+        const head = cmEditorView.state.selection.main.head;
+        const line = cmEditorView.state.doc.lineAt(head);
+        if (line.number > 1) {
+          const prevLine = cmEditorView.state.doc.line(line.number - 1);
+          const col = head - line.from;
+          const newPos = Math.min(prevLine.to, prevLine.from + col);
+          cmEditorView.dispatch({ selection: { anchor: newPos } });
+        }
+        cmEditorView.focus();
+      } else if (key === 'Down') {
+        const head = cmEditorView.state.selection.main.head;
+        const line = cmEditorView.state.doc.lineAt(head);
+        if (line.number < cmEditorView.state.doc.lines) {
+          const nextLine = cmEditorView.state.doc.line(line.number + 1);
+          const col = head - line.from;
+          const newPos = Math.min(nextLine.to, nextLine.from + col);
+          cmEditorView.dispatch({ selection: { anchor: newPos } });
+        }
+        cmEditorView.focus();
+      } else if (key === 'Esc') {
+        cmEditorView.contentDOM.blur();
       }
       setCtrl(false);
       setAlt(false);
@@ -775,6 +836,226 @@
     setAlt(false);
   });
 
+  // --- Modal Dialog Filesystem ---
+  function showFsModal({ title, message, defaultValue = '', showInput = true, confirmText = 'Lanjutkan', isDanger = false }) {
+    return new Promise((resolve) => {
+      fsModalTitle.textContent = title;
+      fsModalMessage.textContent = message;
+      fsModalConfirm.textContent = confirmText;
+      fsModalConfirm.className = `fs-modal-btn ${isDanger ? 'danger' : 'confirm'}`;
+
+      if (showInput) {
+        fsModalInput.style.display = 'block';
+        fsModalInput.value = defaultValue;
+      } else {
+        fsModalInput.style.display = 'none';
+      }
+
+      fsModal.classList.remove('hidden');
+      if (showInput) {
+        setTimeout(() => {
+          fsModalInput.focus();
+          fsModalInput.select();
+        }, 50);
+      }
+
+      fsModalResolve = resolve;
+    });
+  }
+
+  function closeFsModal(result = null) {
+    fsModal.classList.add('hidden');
+    if (fsModalResolve) {
+      fsModalResolve(result);
+      fsModalResolve = null;
+    }
+  }
+
+  fsModalCancel.addEventListener('click', () => closeFsModal(null));
+  fsModalConfirm.addEventListener('click', () => {
+    closeFsModal(fsModalInput.value.trim());
+  });
+
+  fsModalInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      closeFsModal(fsModalInput.value.trim());
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closeFsModal(null);
+    }
+  });
+
+  // --- Context Menu Explorer ---
+  function hideContextMenu() {
+    explorerContextMenu.classList.add('hidden');
+    activeContextItem = null;
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!explorerContextMenu.contains(e.target)) {
+      hideContextMenu();
+    }
+  });
+
+  function showContextMenu(e, item) {
+    activeContextItem = item;
+    const isDir = item.type === 'dir';
+    const isReadable = !isDir && isReadableTextFile(item.name);
+
+    const itemTerminal = explorerContextMenu.querySelector('[data-action="open-terminal"]');
+    const itemEditor = explorerContextMenu.querySelector('[data-action="open-editor"]');
+
+    // Opsi terminal hanya berfungsi untuk folder
+    if (isDir) {
+      itemTerminal.classList.remove('disabled');
+    } else {
+      itemTerminal.classList.add('disabled');
+    }
+
+    // Opsi editor hanya berfungsi pada file yang bisa dibaca pada editor
+    if (isReadable) {
+      itemEditor.classList.remove('disabled');
+    } else {
+      itemEditor.classList.add('disabled');
+    }
+
+    explorerContextMenu.classList.remove('hidden');
+
+    const rect = e.target.getBoundingClientRect();
+    const menuWidth = 190;
+    const menuHeight = 220;
+    let left = rect.right + 4;
+    let top = rect.top;
+
+    if (left + menuWidth > window.innerWidth) {
+      left = rect.left - menuWidth;
+    }
+    if (top + menuHeight > window.innerHeight) {
+      top = window.innerHeight - menuHeight - 8;
+    }
+    explorerContextMenu.style.left = `${Math.max(8, left)}px`;
+    explorerContextMenu.style.top = `${Math.max(8, top)}px`;
+  }
+
+  explorerContextMenu.addEventListener('click', async (e) => {
+    const menuItem = e.target.closest('.context-menu-item');
+    if (!menuItem || menuItem.classList.contains('disabled')) return;
+    const action = menuItem.dataset.action;
+    const targetItem = activeContextItem;
+    hideContextMenu();
+    if (!targetItem) return;
+
+    if (action === 'open-terminal') {
+      if (targetItem.type === 'dir') {
+        sendToActiveTerminal(`cd ${shellEscape(targetItem.path)}\n`);
+        if (activeSessionId) {
+          switchToSession(activeSessionId);
+        }
+      }
+    } else if (action === 'open-editor') {
+      if (targetItem.type !== 'dir' && isReadableTextFile(targetItem.name)) {
+        openFileInEditor(targetItem.path);
+      }
+    } else if (action === 'rename') {
+      const newName = await showFsModal({
+        title: 'Ganti Nama',
+        message: `Ubah nama "${targetItem.name}":`,
+        defaultValue: targetItem.name,
+        confirmText: 'Simpan'
+      });
+      if (newName && newName !== targetItem.name) {
+        try {
+          const res = await apiFetch('/api/fs/rename', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: targetItem.path, new_name: newName })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (openFiles[targetItem.path]) {
+              openFiles[data.new_path] = { ...openFiles[targetItem.path], name: newName };
+              delete openFiles[targetItem.path];
+              if (currentEditingPath === targetItem.path) {
+                currentEditingPath = data.new_path;
+                editorFilename.textContent = newName;
+                editorFilename.title = data.new_path;
+              }
+              renderTabs();
+            }
+            refreshExplorerTree();
+          } else {
+            const err = await res.json().catch(() => ({ detail: 'Gagal mengubah nama' }));
+            alert(err.detail || 'Gagal mengubah nama');
+          }
+        } catch (err) {
+          console.error('Error rename:', err);
+        }
+      }
+    } else if (action === 'move') {
+      const defaultDest = targetItem.path.substring(0, targetItem.path.lastIndexOf('/'));
+      const dest = await showFsModal({
+        title: 'Pindahkan',
+        message: `Pindahkan "${targetItem.name}" ke folder tujuan:`,
+        defaultValue: defaultDest,
+        confirmText: 'Pindahkan'
+      });
+      if (dest && dest !== targetItem.path) {
+        try {
+          const res = await apiFetch('/api/fs/move', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source: targetItem.path, destination: dest })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (openFiles[targetItem.path]) {
+              openFiles[data.destination] = openFiles[targetItem.path];
+              delete openFiles[targetItem.path];
+              if (currentEditingPath === targetItem.path) {
+                currentEditingPath = data.destination;
+                editorFilename.title = data.destination;
+              }
+              renderTabs();
+            }
+            refreshExplorerTree();
+          } else {
+            const err = await res.json().catch(() => ({ detail: 'Gagal memindahkan file/folder' }));
+            alert(err.detail || 'Gagal memindahkan file/folder');
+          }
+        } catch (err) {
+          console.error('Error move:', err);
+        }
+      }
+    } else if (action === 'delete') {
+      const confirmDelete = await showFsModal({
+        title: targetItem.type === 'dir' ? 'Hapus Folder' : 'Hapus File',
+        message: `Apakah Anda yakin ingin menghapus "${targetItem.name}"? Tindakan ini bersifat permanen.`,
+        showInput: false,
+        confirmText: 'Hapus',
+        isDanger: true
+      });
+      if (confirmDelete !== null) {
+        try {
+          const res = await apiFetch(`/api/fs?path=${encodeURIComponent(targetItem.path)}`, {
+            method: 'DELETE'
+          });
+          if (res.ok) {
+            if (openFiles[targetItem.path]) {
+              closeFile(targetItem.path);
+            }
+            refreshExplorerTree();
+          } else {
+            const err = await res.json().catch(() => ({ detail: 'Gagal menghapus' }));
+            alert(err.detail || 'Gagal menghapus');
+          }
+        } catch (err) {
+          console.error('Error delete:', err);
+        }
+      }
+    }
+  });
+
   // --- Sidebar Explorer Tree ---
   const fileTree = document.getElementById('file-tree');
 
@@ -783,6 +1064,10 @@
       return str;
     }
     return "'" + str.replace(/'/g, "'\\''") + "'";
+  }
+
+  function refreshExplorerTree() {
+    renderExplorerLevel(fileTree);
   }
 
   async function renderExplorerLevel(parentElement, path = null, depth = 0) {
@@ -823,6 +1108,17 @@
         name.textContent = item.name;
         row.appendChild(name);
 
+        // Tombol Titik Tiga (⋮) untuk Menu Opsi
+        const dots = document.createElement('span');
+        dots.className = 'tree-dots';
+        dots.textContent = '⋮';
+        dots.title = 'Menu opsi';
+        dots.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showContextMenu(e, item);
+        });
+        row.appendChild(dots);
+
         node.appendChild(row);
 
         if (item.type === 'dir') {
@@ -848,20 +1144,11 @@
             }
           });
         } else {
-          const actionSend = document.createElement('span');
-          actionSend.className = 'tree-action-send';
-          actionSend.textContent = '>_';
-          actionSend.title = 'Kirim path ke terminal aktif';
-          actionSend.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const escaped = shellEscape(item.path);
-            sendToActiveTerminal(escaped + ' ');
-          });
-          row.appendChild(actionSend);
-
           row.addEventListener('click', (e) => {
             e.stopPropagation();
-            openFileInEditor(item.path);
+            if (isReadableTextFile(item.name)) {
+              openFileInEditor(item.path);
+            }
           });
         }
 
