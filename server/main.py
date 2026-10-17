@@ -21,6 +21,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 DEFAULT_PORT = 24817
 
@@ -51,6 +52,7 @@ def parse_args():
 
 def check_port_available(port: int) -> None:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         sock.bind(("127.0.0.1", port))
     except OSError:
@@ -226,6 +228,69 @@ async def list_filesystem(path: Optional[str] = None):
         raise HTTPException(status_code=403, detail="Izin baca direktori ditolak")
     except OSError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class FileSaveRequest(BaseModel):
+    path: str
+    content: str
+
+@app.get("/api/fs/content")
+async def get_file_content(path: str):
+    home_dir = os.path.realpath(os.environ.get("HOME", "/data/data/com.termux/files/home"))
+    storage_dir = os.path.realpath("/storage/emulated/0")
+    real_target = os.path.realpath(path)
+
+    def is_subpath(p: str, parent: str) -> bool:
+        try:
+            return os.path.commonpath([p, parent]) == parent
+        except ValueError:
+            return False
+
+    if not (is_subpath(real_target, home_dir) or is_subpath(real_target, storage_dir)):
+        raise HTTPException(status_code=403, detail="Akses file ditolak")
+
+    if not os.path.exists(real_target) or not os.path.isfile(real_target):
+        raise HTTPException(status_code=404, detail="File tidak ditemukan")
+
+    if os.path.getsize(real_target) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File terlalu besar (> 5MB)")
+
+    try:
+        with open(real_target, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+        return {
+            "path": real_target,
+            "name": os.path.basename(real_target),
+            "content": content
+        }
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Izin baca file ditolak")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/fs/content")
+async def save_file_content(req: FileSaveRequest):
+    home_dir = os.path.realpath(os.environ.get("HOME", "/data/data/com.termux/files/home"))
+    storage_dir = os.path.realpath("/storage/emulated/0")
+    real_target = os.path.realpath(req.path)
+
+    def is_subpath(p: str, parent: str) -> bool:
+        try:
+            return os.path.commonpath([p, parent]) == parent
+        except ValueError:
+            return False
+
+    if not (is_subpath(real_target, home_dir) or is_subpath(real_target, storage_dir)):
+        raise HTTPException(status_code=403, detail="Akses file ditolak")
+
+    try:
+        with open(real_target, "w", encoding="utf-8") as f:
+            f.write(req.content)
+        return {"ok": True, "path": real_target}
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Izin tulis file ditolak")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @app.websocket("/ws/terminal")

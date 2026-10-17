@@ -23,6 +23,7 @@ Termux Workspace terdiri dari 3 komponen utama:
    - Bar Tab: manajemen sesi shell (Bash, Zsh, dll.), tombol tutup `x`, tombol `+` dengan gradien `#5EF0B4` ke `#C86DFF`.
    - Menu Popup & Pencarian: aksi Terminal, Explorer, Split View, pencarian aksi / shortcut `Ctrl + K`.
    - Split View: membagi layar menjadi 2 terminal berdampingan.
+   - Code Editor Terintegrasi: Klik file di Explorer untuk membuka editor di tab baru dengan penomoran baris, pelacak kursor (Ln/Col), tombol & pintasan Simpan (`Ctrl+S`), indentasi 2-spasi, auto-indent baris baru, dan tombol kirim path ke terminal (`>_`).
    - Baris Tombol Ekstra: Esc, Tab, Ctrl (toggle sekali pakai), Alt (toggle sekali pakai), dan panah navigasi (←, ↑, ↓, →).
 3. **Aplikasi Android Kotlin Add-on**:
    - Application ID: `com.workspace.termuxui`.
@@ -98,6 +99,7 @@ Termux Workspace consists of three core components:
    - Session Tab Bar: active tab close button `x`, gradient `+` button (`#5EF0B4` to `#C86DFF`).
    - Popup Menu with action filtering and `Ctrl + K` shortcut.
    - Split View: two side-by-side terminal panels with independent focus.
+   - Built-in Code Editor: Opening files from the Explorer into dedicated editor tabs, complete with line numbering, cursor position tracker (Ln/Col), save button & shortcut (`Ctrl+S`), 2-space tab indentation, auto-indentation, and a quick send-path-to-terminal (`>_`) button.
    - Extra Keys Toolbar: Esc, Tab, single-use toggle Ctrl/Alt, and navigation arrows (←, ↑, ↓, →).
 3. **Android Kotlin Add-on Application**:
    - Application ID: `com.workspace.termuxui`.

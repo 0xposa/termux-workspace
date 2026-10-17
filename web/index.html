@@ -53,6 +53,25 @@
         </div>
       </div>
 
+      <!-- Area Code Editor -->
+      <div id="editor-area" class="editor-area hidden">
+        <div class="editor-toolbar">
+          <div class="editor-file-info">
+            <span id="editor-filename" class="editor-filename">untitled</span>
+            <span id="editor-status" class="editor-status">Tersimpan</span>
+          </div>
+          <div class="editor-toolbar-actions">
+            <button id="btn-save-file" class="editor-btn" title="Simpan file (Ctrl+S)">💾 Simpan</button>
+            <button id="btn-send-to-terminal" class="editor-btn" title="Kirim path file ke terminal aktif">&gt;_ Ke Terminal</button>
+            <span id="editor-cursor-pos" class="editor-cursor-pos">Ln 1, Col 1</span>
+          </div>
+        </div>
+        <div class="editor-body">
+          <div id="editor-line-numbers" class="editor-line-numbers">1</div>
+          <textarea id="editor-textarea" class="editor-textarea" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
+        </div>
+      </div>
+
       <!-- Baris Tombol Ekstra -->
       <div id="extra-keys-bar" class="extra-keys-bar">
         <button class="key-btn" data-key="Esc">Esc</button>

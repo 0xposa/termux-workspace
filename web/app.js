@@ -43,6 +43,21 @@
   const btnAlt = document.getElementById('btn-alt');
   const extraKeysBar = document.getElementById('extra-keys-bar');
 
+  // State & Elemen DOM Code Editor
+  let activeTabType = 'terminal'; // 'terminal' | 'editor'
+  let currentEditingPath = null;
+  const openFiles = {}; // { [path]: { name, content, originalContent, isDirty } }
+
+  const editorArea = document.getElementById('editor-area');
+  const terminalArea = document.getElementById('terminal-area');
+  const editorFilename = document.getElementById('editor-filename');
+  const editorStatus = document.getElementById('editor-status');
+  const editorTextarea = document.getElementById('editor-textarea');
+  const editorLineNumbers = document.getElementById('editor-line-numbers');
+  const editorCursorPos = document.getElementById('editor-cursor-pos');
+  const btnSaveFile = document.getElementById('btn-save-file');
+  const btnSendToTerminal = document.getElementById('btn-send-to-terminal');
+
   // Helper HTTP fetch dengan token
   async function apiFetch(endpoint, options = {}) {
     const sep = endpoint.includes('?') ? '&' : '?';
@@ -120,9 +135,12 @@
 
   function renderTabs() {
     tabsContainer.innerHTML = '';
+
+    // Tab sesi terminal
     sessions.forEach(sess => {
       const tab = document.createElement('div');
-      tab.className = `tab ${sess.id === activeSessionId ? 'active' : ''}`;
+      const isActive = activeTabType === 'terminal' && sess.id === activeSessionId;
+      tab.className = `tab ${isActive ? 'active' : ''}`;
       tab.dataset.id = sess.id;
 
       const title = document.createElement('span');
@@ -130,7 +148,7 @@
       title.textContent = sess.name;
       tab.appendChild(title);
 
-      if (sess.id === activeSessionId) {
+      if (isActive) {
         const btnClose = document.createElement('span');
         btnClose.className = 'tab-close';
         btnClose.textContent = '✕';
@@ -148,11 +166,47 @@
 
       tabsContainer.appendChild(tab);
     });
+
+    // Tab file editor
+    Object.keys(openFiles).forEach(fPath => {
+      const fileData = openFiles[fPath];
+      const tab = document.createElement('div');
+      const isActive = activeTabType === 'editor' && currentEditingPath === fPath;
+      tab.className = `tab ${isActive ? 'active' : ''}`;
+
+      const title = document.createElement('span');
+      title.className = 'tab-title';
+      title.textContent = `📄 ${fileData.name}${fileData.isDirty ? ' ●' : ''}`;
+      tab.appendChild(title);
+
+      if (isActive) {
+        const btnClose = document.createElement('span');
+        btnClose.className = 'tab-close';
+        btnClose.textContent = '✕';
+        btnClose.title = 'Tutup file';
+        btnClose.addEventListener('click', (e) => {
+          e.stopPropagation();
+          closeFile(fPath);
+        });
+        tab.appendChild(btnClose);
+      }
+
+      tab.addEventListener('click', () => {
+        switchToEditor(fPath);
+      });
+
+      tabsContainer.appendChild(tab);
+    });
   }
 
   function switchToSession(sessionId) {
     if (!sessionId) return;
+    activeTabType = 'terminal';
     activeSessionId = sessionId;
+
+    editorArea.classList.add('hidden');
+    terminalArea.classList.remove('hidden');
+
     renderTabs();
 
     if (isSplitMode) {
@@ -166,6 +220,178 @@
       mountTerminal(activeSessionId, containerLeft);
     }
   }
+
+  // --- Fungsi Code Editor ---
+  async function openFileInEditor(filePath) {
+    if (openFiles[filePath]) {
+      switchToEditor(filePath);
+      return;
+    }
+    try {
+      const res = await apiFetch(`/api/fs/content?path=${encodeURIComponent(filePath)}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Gagal membuka file' }));
+        console.error(err.detail || 'Gagal membuka file');
+        return;
+      }
+      const data = await res.json();
+      openFiles[filePath] = {
+        name: data.name,
+        content: data.content,
+        originalContent: data.content,
+        isDirty: false
+      };
+      switchToEditor(filePath);
+    } catch (e) {
+      console.error('Gagal membuka file:', e);
+    }
+  }
+
+  function switchToEditor(filePath) {
+    const fileData = openFiles[filePath];
+    if (!fileData) return;
+    activeTabType = 'editor';
+    currentEditingPath = filePath;
+
+    terminalArea.classList.add('hidden');
+    editorArea.classList.remove('hidden');
+
+    editorFilename.textContent = fileData.name;
+    editorFilename.title = filePath;
+    editorTextarea.value = fileData.content;
+    updateLineNumbers();
+    updateEditorStatus();
+    updateCursorPos();
+    renderTabs();
+    setTimeout(() => editorTextarea.focus(), 50);
+  }
+
+  function updateLineNumbers() {
+    const lines = editorTextarea.value.split('\n').length;
+    editorLineNumbers.textContent = Array.from({ length: lines }, (_, i) => i + 1).join('\n');
+  }
+
+  function updateEditorStatus() {
+    const fileData = openFiles[currentEditingPath];
+    if (!fileData) return;
+    if (fileData.isDirty) {
+      editorStatus.textContent = 'Belum disimpan ●';
+      editorStatus.className = 'editor-status unsaved';
+    } else {
+      editorStatus.textContent = 'Tersimpan';
+      editorStatus.className = 'editor-status';
+    }
+  }
+
+  function updateCursorPos() {
+    const text = editorTextarea.value.substring(0, editorTextarea.selectionStart);
+    const lines = text.split('\n');
+    const row = lines.length;
+    const col = lines[lines.length - 1].length + 1;
+    editorCursorPos.textContent = `Ln ${row}, Col ${col}`;
+  }
+
+  async function saveCurrentFile() {
+    if (!currentEditingPath || !openFiles[currentEditingPath]) return;
+    const content = editorTextarea.value;
+    try {
+      const res = await apiFetch('/api/fs/content', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: currentEditingPath, content })
+      });
+      if (res.ok) {
+        openFiles[currentEditingPath].content = content;
+        openFiles[currentEditingPath].originalContent = content;
+        openFiles[currentEditingPath].isDirty = false;
+        updateEditorStatus();
+        renderTabs();
+      } else {
+        const err = await res.json().catch(() => ({ detail: 'Gagal menyimpan file' }));
+        console.error(err.detail || 'Gagal menyimpan file');
+      }
+    } catch (e) {
+      console.error('Gagal menyimpan file:', e);
+    }
+  }
+
+  function closeFile(filePath) {
+    delete openFiles[filePath];
+    if (currentEditingPath === filePath) {
+      const remainingPaths = Object.keys(openFiles);
+      if (remainingPaths.length > 0) {
+        switchToEditor(remainingPaths[remainingPaths.length - 1]);
+      } else {
+        currentEditingPath = null;
+        if (activeSessionId) {
+          switchToSession(activeSessionId);
+        } else if (sessions.length > 0) {
+          switchToSession(sessions[0].id);
+        }
+      }
+    } else {
+      renderTabs();
+    }
+  }
+
+  // Event listener input & shortcut textarea editor
+  editorTextarea.addEventListener('input', () => {
+    if (!currentEditingPath || !openFiles[currentEditingPath]) return;
+    openFiles[currentEditingPath].content = editorTextarea.value;
+    openFiles[currentEditingPath].isDirty = (editorTextarea.value !== openFiles[currentEditingPath].originalContent);
+    updateLineNumbers();
+    updateEditorStatus();
+    renderTabs();
+  });
+
+  editorTextarea.addEventListener('scroll', () => {
+    editorLineNumbers.scrollTop = editorTextarea.scrollTop;
+  });
+
+  ['click', 'keyup', 'select'].forEach(ev => {
+    editorTextarea.addEventListener(ev, updateCursorPos);
+  });
+
+  editorTextarea.addEventListener('keydown', (e) => {
+    // Tab: sisipkan 2 spasi
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = editorTextarea.selectionStart;
+      const end = editorTextarea.selectionEnd;
+      editorTextarea.value = editorTextarea.value.substring(0, start) + '  ' + editorTextarea.value.substring(end);
+      editorTextarea.selectionStart = editorTextarea.selectionEnd = start + 2;
+      editorTextarea.dispatchEvent(new Event('input'));
+    } else if (e.key === 'Enter') {
+      // Auto-indent baris baru
+      const start = editorTextarea.selectionStart;
+      const currentLine = editorTextarea.value.substring(0, start).split('\n').pop();
+      const indent = currentLine.match(/^\s*/)[0];
+      if (indent.length > 0) {
+        e.preventDefault();
+        const insert = '\n' + indent;
+        editorTextarea.value = editorTextarea.value.substring(0, start) + insert + editorTextarea.value.substring(editorTextarea.selectionEnd);
+        editorTextarea.selectionStart = editorTextarea.selectionEnd = start + insert.length;
+        editorTextarea.dispatchEvent(new Event('input'));
+      }
+    } else if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+      e.preventDefault();
+      saveCurrentFile();
+    }
+  });
+
+  btnSaveFile.addEventListener('click', () => {
+    saveCurrentFile();
+  });
+
+  btnSendToTerminal.addEventListener('click', () => {
+    if (currentEditingPath) {
+      const escaped = shellEscape(currentEditingPath);
+      sendToActiveTerminal(escaped + ' ');
+      if (activeSessionId) {
+        switchToSession(activeSessionId);
+      }
+    }
+  });
 
   // --- Terminal xterm.js & WebSocket ---
   function getOrCreateTerminal(sessionId) {
@@ -502,6 +728,28 @@
       return;
     }
 
+    if (activeTabType === 'editor') {
+      if (key === 'Tab') {
+        const start = editorTextarea.selectionStart;
+        const end = editorTextarea.selectionEnd;
+        editorTextarea.value = editorTextarea.value.substring(0, start) + '  ' + editorTextarea.value.substring(end);
+        editorTextarea.selectionStart = editorTextarea.selectionEnd = start + 2;
+        editorTextarea.dispatchEvent(new Event('input'));
+        editorTextarea.focus();
+      } else if (key === 'Left') {
+        editorTextarea.selectionStart = editorTextarea.selectionEnd = Math.max(0, editorTextarea.selectionStart - 1);
+        updateCursorPos();
+        editorTextarea.focus();
+      } else if (key === 'Right') {
+        editorTextarea.selectionStart = editorTextarea.selectionEnd = Math.min(editorTextarea.value.length, editorTextarea.selectionStart + 1);
+        updateCursorPos();
+        editorTextarea.focus();
+      }
+      setCtrl(false);
+      setAlt(false);
+      return;
+    }
+
     let code = '';
     if (key === 'Esc') {
       code = '\x1b';
@@ -600,10 +848,20 @@
             }
           });
         } else {
-          row.addEventListener('click', (e) => {
+          const actionSend = document.createElement('span');
+          actionSend.className = 'tree-action-send';
+          actionSend.textContent = '>_';
+          actionSend.title = 'Kirim path ke terminal aktif';
+          actionSend.addEventListener('click', (e) => {
             e.stopPropagation();
             const escaped = shellEscape(item.path);
             sendToActiveTerminal(escaped + ' ');
+          });
+          row.appendChild(actionSend);
+
+          row.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openFileInEditor(item.path);
           });
         }
 

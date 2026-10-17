@@ -60,9 +60,9 @@ if command -v termux-wake-lock >/dev/null 2>&1; then
 fi
 
 if command -v setsid >/dev/null 2>&1; then
-  nohup setsid python "$SCRIPT_DIR/server/main.py" --token "$TOKEN" --port "$PORT" </dev/null >> "$LOG_FILE" 2>&1 &
+  nohup setsid python -u "$SCRIPT_DIR/server/main.py" --token "$TOKEN" --port "$PORT" </dev/null >> "$LOG_FILE" 2>&1 &
 else
-  nohup python "$SCRIPT_DIR/server/main.py" --token "$TOKEN" --port "$PORT" </dev/null >> "$LOG_FILE" 2>&1 &
+  nohup python -u "$SCRIPT_DIR/server/main.py" --token "$TOKEN" --port "$PORT" </dev/null >> "$LOG_FILE" 2>&1 &
 fi
 SERVER_PID=$!
 echo "$SERVER_PID" > "$PID_FILE"

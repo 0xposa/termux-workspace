@@ -400,3 +400,147 @@ body, html {
   color: #14161C;
   font-weight: bold;
 }
+
+/* Area Code Editor */
+.editor-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background-color: #14161C;
+  position: relative;
+}
+
+.editor-area.hidden {
+  display: none;
+}
+
+.editor-toolbar {
+  height: 38px;
+  background-color: #1E222B;
+  border-bottom: 1px solid #2B303B;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-size: 13px;
+  user-select: none;
+}
+
+.editor-file-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.editor-filename {
+  font-weight: bold;
+  color: #E6E8EC;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor-status {
+  font-size: 11px;
+  color: #8E95A5;
+}
+
+.editor-status.unsaved {
+  color: #5EF0B4;
+  font-weight: bold;
+}
+
+.editor-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.editor-btn {
+  background-color: #14161C;
+  border: 1px solid #2B303B;
+  border-radius: 4px;
+  color: #E6E8EC;
+  padding: 4px 10px;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.editor-btn:hover {
+  background-color: #252A36;
+  border-color: #5EF0B4;
+  color: #5EF0B4;
+}
+
+.editor-cursor-pos {
+  font-size: 11px;
+  color: #8E95A5;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+.editor-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  background-color: #14161C;
+}
+
+.editor-line-numbers {
+  width: 48px;
+  min-width: 48px;
+  background-color: #1E222B;
+  border-right: 1px solid #2B303B;
+  color: #8E95A5;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  padding: 8px 8px 8px 0;
+  text-align: right;
+  user-select: none;
+  overflow: hidden;
+  white-space: pre;
+}
+
+.editor-textarea {
+  flex: 1;
+  height: 100%;
+  background-color: #14161C;
+  color: #E6E8EC;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  padding: 8px 12px;
+  border: none;
+  outline: none;
+  resize: none;
+  white-space: pre;
+  overflow: auto;
+  tab-size: 2;
+  word-break: normal;
+}
+
+.tree-action-send {
+  margin-left: auto;
+  font-size: 11px;
+  color: #8E95A5;
+  padding: 1px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+.tree-action-send:hover {
+  opacity: 1;
+  color: #5EF0B4;
+  background-color: #2B303B;
+}
