@@ -508,7 +508,6 @@ body, html {
 .cm-editor {
   width: 100% !important;
   height: 100% !important;
-  max-height: 100% !important;
   font-family: monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
   font-size: 14px !important;
   background-color: #14161C !important;
@@ -522,20 +521,28 @@ body, html {
   overflow: auto !important;
   height: 100% !important;
   font-family: inherit !important;
-  line-height: 22px !important;
-}
-
-.cm-content {
-  min-height: 100% !important;
-  padding: 4px 8px !important;
-  box-sizing: border-box !important;
 }
 
 .cm-gutters {
   background-color: #1E222B !important;
   border-right: 1px solid #2B303B !important;
   color: #8E95A5 !important;
-  min-height: 100% !important;
+}
+
+.cm-lineNumbers {
+  font-variant-numeric: tabular-nums;
+}
+
+.cm-lineNumbers .cm-gutterElement {
+  padding: 0 8px 0 6px !important;
+  min-width: 32px !important;
+  text-align: right !important;
+  box-sizing: border-box !important;
+}
+
+.cm-activeLineGutter {
+  background-color: #282C34 !important;
+  color: #ABB2BF !important;
 }
 
 @media (max-width: 520px) {
