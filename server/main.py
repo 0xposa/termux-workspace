@@ -166,7 +166,8 @@ async def create_session():
             idx += 1
         display_name = f"{base_name} {idx}"
 
-    cmd = ["tmux", "new-session", "-d", "-s", new_id, "-x", "120", "-y", "30", shell]
+    home_dir = os.environ.get("HOME", "/data/data/com.termux/files/home")
+    cmd = ["tmux", "new-session", "-d", "-s", new_id, "-c", home_dir, "-x", "120", "-y", "30", shell]
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
         raise HTTPException(status_code=500, detail=f"Gagal membuat sesi tmux: {res.stderr}")
