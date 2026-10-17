@@ -184,6 +184,49 @@ async def delete_session(session_id: str):
     res = subprocess.run(["tmux", "kill-session", "-t", session_id], capture_output=True, text=True)
     return {"ok": True}
 
+@app.get("/api/fs")
+async def list_filesystem(path: Optional[str] = None):
+    home_dir = os.path.realpath(os.environ.get("HOME", "/data/data/com.termux/files/home"))
+    target = path if path else home_dir
+    real_target = os.path.realpath(target)
+
+    storage_dir = os.path.realpath("/storage/emulated/0")
+
+    def is_subpath(p: str, parent: str) -> bool:
+        try:
+            return os.path.commonpath([p, parent]) == parent
+        except ValueError:
+            return False
+
+    if not (is_subpath(real_target, home_dir) or is_subpath(real_target, storage_dir)):
+        raise HTTPException(status_code=403, detail="Akses direktori ditolak")
+
+    if not os.path.exists(real_target) or not os.path.isdir(real_target):
+        raise HTTPException(status_code=404, detail="Direktori tidak ditemukan")
+
+    try:
+        entries = []
+        with os.scandir(real_target) as it:
+            for entry in it:
+                try:
+                    is_dir = entry.is_dir(follow_symlinks=True)
+                except OSError:
+                    is_dir = False
+                entries.append({
+                    "name": entry.name,
+                    "type": "dir" if is_dir else "file",
+                    "path": entry.path
+                })
+
+        # Urutkan: folder di atas file, lalu alfabetis case-insensitive
+        entries.sort(key=lambda x: (0 if x["type"] == "dir" else 1, x["name"].lower()))
+        return entries
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Izin baca direktori ditolak")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.websocket("/ws/terminal")
 async def websocket_terminal(websocket: WebSocket, id: str = "", cols: int = 120, rows: int = 30):
     # Validasi header Origin: hanya http://127.0.0.1:<port>

@@ -512,13 +512,94 @@
     }
   });
 
-  // Ekspos fungsi bantuan ke window untuk integrasi Fase 4 (Explorer file clicks)
-  window.TermuxWorkspace = {
-    sendToActiveTerminal,
-    toggleSidebar,
-    apiFetch
-  };
+  // --- Sidebar Explorer Tree ---
+  const fileTree = document.getElementById('file-tree');
+
+  function shellEscape(str) {
+    if (/^[a-zA-Z0-9_\.\-\/]+$/.test(str)) {
+      return str;
+    }
+    return "'" + str.replace(/'/g, "'\\''") + "'";
+  }
+
+  async function renderExplorerLevel(parentElement, path = null, depth = 0) {
+    try {
+      const endpoint = path ? `/api/fs?path=${encodeURIComponent(path)}` : '/api/fs';
+      const res = await apiFetch(endpoint);
+      if (!res.ok) {
+        const err = document.createElement('div');
+        err.className = 'tree-item';
+        err.style.color = '#FF6B6B';
+        err.style.paddingLeft = `${depth * 14 + 10}px`;
+        err.textContent = 'Akses ditolak / Error';
+        parentElement.appendChild(err);
+        return;
+      }
+      const items = await res.json();
+      parentElement.innerHTML = '';
+      items.forEach(item => {
+        const node = document.createElement('div');
+        node.className = 'tree-node';
+
+        const row = document.createElement('div');
+        row.className = 'tree-item';
+        row.style.paddingLeft = `${depth * 14 + 10}px`;
+
+        const arrow = document.createElement('span');
+        arrow.className = 'tree-arrow';
+        arrow.textContent = item.type === 'dir' ? '▶' : ' ';
+        row.appendChild(arrow);
+
+        const icon = document.createElement('span');
+        icon.className = 'tree-icon';
+        icon.textContent = item.type === 'dir' ? '📁' : '📄';
+        row.appendChild(icon);
+
+        const name = document.createElement('span');
+        name.className = 'tree-name';
+        name.textContent = item.name;
+        row.appendChild(name);
+
+        node.appendChild(row);
+
+        if (item.type === 'dir') {
+          const children = document.createElement('div');
+          children.className = 'tree-children';
+          children.style.display = 'none';
+          node.appendChild(children);
+
+          let loaded = false;
+          row.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const isExpanded = children.style.display === 'flex';
+            if (isExpanded) {
+              children.style.display = 'none';
+              arrow.textContent = '▶';
+            } else {
+              if (!loaded) {
+                await renderExplorerLevel(children, item.path, depth + 1);
+                loaded = true;
+              }
+              children.style.display = 'flex';
+              arrow.textContent = '▼';
+            }
+          });
+        } else {
+          row.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const escaped = shellEscape(item.path);
+            sendToActiveTerminal(escaped + ' ');
+          });
+        }
+
+        parentElement.appendChild(node);
+      });
+    } catch (err) {
+      console.error('Gagal memuat explorer:', err);
+    }
+  }
 
   // Inisialisasi awal
   loadSessions();
+  renderExplorerLevel(fileTree);
 })();
