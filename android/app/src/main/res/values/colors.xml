@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background_terminal">#14161C</color>
+    <color name="background_bar">#1E222B</color>
+    <color name="text_primary">#E6E8EC</color>
+    <color name="border_separator">#2B303B</color>
+    <color name="accent_green">#5EF0B4</color>
+    <color name="accent_purple">#C86DFF</color>
+</resources>

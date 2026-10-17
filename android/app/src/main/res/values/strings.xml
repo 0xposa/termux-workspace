@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Termux Workspace</string>
+    <string name="termux_not_installed">Termux belum terpasang. Pasang Termux versi F-Droid terlebih dahulu.</string>
+    <string name="server_connection_failed">Gagal menyambung ke server Workspace. Pastikan izin RUN_COMMAND telah diberikan dan allow-external-apps=true ada di ~/.termux/termux.properties.</string>
+    <string name="connecting_server">Menyambungkan ke Termux Workspace...</string>
+    <string name="btn_retry">Coba lagi</string>
+</resources>
