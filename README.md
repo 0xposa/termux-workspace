@@ -80,6 +80,18 @@ Untuk me-restart atau menghentikan server:
 3. **Buka Aplikasi**:
    Buka aplikasi dari launcher. Aplikasi akan otomatis membuat token, memicu `RUN_COMMAND` untuk menjalankan `start.sh`, dan menampilkan terminal fullscreen.
 
+#### Cara 3: Live Development Preview (Port Khusus 24818)
+Saat mengembangkan antarmuka atau fitur baru Termux Workspace tanpa mengganggu server utama (port 24817):
+```bash
+# Jalankan server preview
+./preview.sh
+
+# Atau langsung buka di browser perangkat:
+./preview.sh --open
+```
+- Akses URL: `http://127.0.0.1:24818/?token=preview`
+- Untuk menghentikan server preview: `./preview.sh --stop`
+
 ---
 
 ## English
@@ -136,6 +148,18 @@ http://127.0.0.1:24817/?token=<64_hex_token>
    Open **Android Settings** $\to$ **Apps** $\to$ **Termux Workspace** $\to$ **Permissions** $\to$ **Additional permissions** $\to$ Enable **"Run commands in Termux environment"**.
 3. **Launch the App**:
    Open **Termux Workspace** from your app drawer. It will bootstrap the server via Termux `RUN_COMMAND` and display the workspace in fullscreen.
+
+#### Option C: Live Development Preview (Dedicated Port 24818)
+When developing the UI or testing new features without interfering with the primary workspace server (port 24817):
+```bash
+# Start preview server
+./preview.sh
+
+# Or open directly in device browser:
+./preview.sh --open
+```
+- Preview URL: `http://127.0.0.1:24818/?token=preview`
+- Stop preview server: `./preview.sh --stop`
 
 ---
 
