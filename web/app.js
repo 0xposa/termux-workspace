@@ -103,14 +103,16 @@
     }
   }
 
-  async function createNewSession() {
+  async function createNewSession(cwd = null) {
     try {
-      const res = await apiFetch('/api/sessions', { method: 'POST' });
+      const endpoint = cwd ? `/api/sessions?cwd=${encodeURIComponent(cwd)}` : '/api/sessions';
+      const res = await apiFetch(endpoint, { method: 'POST' });
       if (res.ok) {
         const newSession = await res.json();
         sessions.push(newSession);
         renderTabs();
         switchToSession(newSession.id);
+        return newSession;
       }
     } catch (e) {
       console.error('Gagal membuat sesi baru:', e);
@@ -221,6 +223,13 @@
 
     renderTabs();
 
+    setTimeout(() => {
+      const activeTabEl = tabsContainer.querySelector('.tab.active');
+      if (activeTabEl) {
+        activeTabEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      }
+    }, 50);
+
     if (isSplitMode) {
       if (focusedPanel === 'left') {
         mountTerminal(activeSessionId, containerLeft);
@@ -314,6 +323,10 @@
 
   async function openFileInEditor(filePath) {
     if (openFiles[filePath]) {
+      // Pindahkan ke posisi terbaru di tab
+      const existingData = openFiles[filePath];
+      delete openFiles[filePath];
+      openFiles[filePath] = existingData;
       switchToEditor(filePath);
       return;
     }
@@ -354,6 +367,13 @@
     updateEditorStatus();
     updateCursorPos();
     renderTabs();
+
+    setTimeout(() => {
+      const activeTabEl = tabsContainer.querySelector('.tab.active');
+      if (activeTabEl) {
+        activeTabEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      }
+    }, 50);
   }
 
   function updateEditorStatus() {
@@ -948,10 +968,7 @@
 
     if (action === 'open-terminal') {
       if (targetItem.type === 'dir') {
-        sendToActiveTerminal(`cd ${shellEscape(targetItem.path)}\n`);
-        if (activeSessionId) {
-          switchToSession(activeSessionId);
-        }
+        await createNewSession(targetItem.path);
       }
     } else if (action === 'open-editor') {
       if (targetItem.type !== 'dir' && isReadableTextFile(targetItem.name)) {

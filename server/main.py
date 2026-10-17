@@ -143,7 +143,7 @@ async def get_sessions():
     return list_tmux_sessions()
 
 @app.post("/api/sessions")
-async def create_session():
+async def create_session(cwd: Optional[str] = None):
     existing = list_tmux_sessions()
     used_numbers = set()
     for s in existing:
@@ -168,8 +168,22 @@ async def create_session():
             idx += 1
         display_name = f"{base_name} {idx}"
 
-    home_dir = os.environ.get("HOME", "/data/data/com.termux/files/home")
-    cmd = ["tmux", "new-session", "-d", "-s", new_id, "-c", home_dir, "-x", "120", "-y", "30", shell]
+    home_dir = os.path.realpath(os.environ.get("HOME", "/data/data/com.termux/files/home"))
+    storage_dir = os.path.realpath("/storage/emulated/0")
+
+    def is_subpath(p: str, parent: str) -> bool:
+        try:
+            return os.path.commonpath([p, parent]) == parent
+        except ValueError:
+            return False
+
+    work_dir = home_dir
+    if cwd:
+        real_cwd = os.path.realpath(cwd)
+        if (is_subpath(real_cwd, home_dir) or is_subpath(real_cwd, storage_dir)) and os.path.isdir(real_cwd):
+            work_dir = real_cwd
+
+    cmd = ["tmux", "new-session", "-d", "-s", new_id, "-c", work_dir, "-x", "120", "-y", "30", shell]
     res = subprocess.run(cmd, capture_output=True, text=True)
     if res.returncode != 0:
         raise HTTPException(status_code=500, detail=f"Gagal membuat sesi tmux: {res.stderr}")
