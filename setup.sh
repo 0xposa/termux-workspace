@@ -55,9 +55,12 @@ if command -v termux-reload-settings >/dev/null 2>&1; then
   termux-reload-settings || true
 fi
 
-# 6. Set izin eksekusi untuk start.sh
+# 6. Set izin eksekusi untuk start.sh dan preview.sh
 if [ -f "$SCRIPT_DIR/start.sh" ]; then
   chmod +x "$SCRIPT_DIR/start.sh"
+fi
+if [ -f "$SCRIPT_DIR/preview.sh" ]; then
+  chmod +x "$SCRIPT_DIR/preview.sh"
 fi
 
 echo "=== Setup Selesai ==="
