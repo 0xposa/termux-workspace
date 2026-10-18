@@ -667,6 +667,18 @@
     term.open(termWrap);
 
     // Hapus dan blokir pop up klik kanan lama bawaan browser / xterm, lalu tampilkan context menu baru yang sempurna
+    const suppressRightClickMouseEvents = (e) => {
+      if (e.button === 2) {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }
+    };
+    termWrap.addEventListener('mousedown', suppressRightClickMouseEvents, true);
+    termWrap.addEventListener('mouseup', suppressRightClickMouseEvents, true);
+    termWrap.addEventListener('pointerdown', suppressRightClickMouseEvents, true);
+    termWrap.addEventListener('pointerup', suppressRightClickMouseEvents, true);
+    termWrap.addEventListener('auxclick', suppressRightClickMouseEvents, true);
+
     termWrap.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -681,6 +693,11 @@
     }, true);
 
     if (term.textarea) {
+      term.textarea.addEventListener('mousedown', suppressRightClickMouseEvents, true);
+      term.textarea.addEventListener('mouseup', suppressRightClickMouseEvents, true);
+      term.textarea.addEventListener('pointerdown', suppressRightClickMouseEvents, true);
+      term.textarea.addEventListener('pointerup', suppressRightClickMouseEvents, true);
+      term.textarea.addEventListener('auxclick', suppressRightClickMouseEvents, true);
       term.textarea.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -705,12 +722,25 @@
     };
 
     term.onData((data) => {
+      // Filter urutan escape pelaporan mouse klik kanan (SGR/X10) agar tidak terkirim ke tmux / PTY
+      let cleanData = data;
+      if (typeof cleanData === 'string') {
+        cleanData = cleanData
+          .replace(/\x1b\[<(?:\d+;){2}\d+[Mm]/g, (seq) => {
+            const m = seq.match(/^\x1b\[<(\d+);/);
+            if (m && (parseInt(m[1], 10) & 3) === 2) return '';
+            return seq;
+          })
+          .replace(/\x1b\[M\"../g, '');
+      }
+      if (!cleanData) return;
+
       // Penanganan tombol modifier Ctrl / Alt jika aktif
-      let outData = data;
+      let outData = cleanData;
       if (ctrlActive) {
         // Jika karakter huruf a-z / A-Z ditekan dengan Ctrl
-        if (data.length === 1) {
-          const code = data.charCodeAt(0);
+        if (cleanData.length === 1) {
+          const code = cleanData.charCodeAt(0);
           if (code >= 97 && code <= 122) { // a-z
             outData = String.fromCharCode(code - 96);
           } else if (code >= 65 && code <= 90) { // A-Z
@@ -1345,6 +1375,18 @@
 
   // Listener Klik Kanan & Klik Kiri pada Terminal Container
   if (terminalContainer) {
+    const suppressContainerRightClick = (e) => {
+      if (e.button === 2) {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }
+    };
+    terminalContainer.addEventListener('mousedown', suppressContainerRightClick, true);
+    terminalContainer.addEventListener('mouseup', suppressContainerRightClick, true);
+    terminalContainer.addEventListener('pointerdown', suppressContainerRightClick, true);
+    terminalContainer.addEventListener('pointerup', suppressContainerRightClick, true);
+    terminalContainer.addEventListener('auxclick', suppressContainerRightClick, true);
+
     // 1. Klik kanan pada terminal: cegah pop up browser lama dan tampilkan context menu desktop yang baru
     terminalContainer.addEventListener('contextmenu', (e) => {
       e.preventDefault();
@@ -1446,6 +1488,22 @@
       showExplorerBgContextMenu(e);
     });
   }
+
+  // Cegah event mouse klik kanan (mousedown/mouseup/pointerdown/pointerup/auxclick) mencapai elemen terminal xterm pada level capture dokumen
+  const suppressTerminalRightClickCapture = (e) => {
+    if (e.button === 2) {
+      const isTerminal = e.target.closest('#terminal-container') || e.target.closest('#terminal-area') || (e.target.classList && e.target.classList.contains('xterm-helper-textarea'));
+      if (isTerminal) {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }
+    }
+  };
+  document.addEventListener('mousedown', suppressTerminalRightClickCapture, true);
+  document.addEventListener('mouseup', suppressTerminalRightClickCapture, true);
+  document.addEventListener('pointerdown', suppressTerminalRightClickCapture, true);
+  document.addEventListener('pointerup', suppressTerminalRightClickCapture, true);
+  document.addEventListener('auxclick', suppressTerminalRightClickCapture, true);
 
   // Cegah menu klik kanan default browser yang mengganggu (kecuali input dan editor)
   document.addEventListener('contextmenu', (e) => {

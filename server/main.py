@@ -126,6 +126,20 @@ def get_default_shell() -> str:
             return fallback
     return shutil.which("bash") or "sh"
 
+def disable_tmux_right_click_menus():
+    """Nonaktifkan semua menu popup klik kanan bawaan tmux agar tidak tumpang tindih dengan context menu web."""
+    keys = [
+        "MouseDown3Pane", "M-MouseDown3Pane",
+        "MouseDown3Status", "MouseDown3StatusLeft",
+        "MouseDown3Empty", "M-MouseDown3Status",
+        "M-MouseDown3StatusLeft", "M-MouseDown3Empty",
+        "MouseDown1Control9"
+    ]
+    for key in keys:
+        subprocess.run(["tmux", "unbind-key", "-n", key], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+disable_tmux_right_click_menus()
+
 def list_tmux_sessions() -> list[dict]:
     res = subprocess.run(["tmux", "list-sessions", "-F", "#{session_name}"], capture_output=True, text=True)
     if res.returncode != 0:
@@ -202,6 +216,7 @@ async def create_session(cwd: Optional[str] = None):
     subprocess.run(["tmux", "set-option", "-t", new_id, "status", "off"], check=False)
     subprocess.run(["tmux", "set-option", "-t", new_id, "mouse", "on"], check=False)
     subprocess.run(["tmux", "set-option", "-t", new_id, "@ws_name", display_name], check=False)
+    disable_tmux_right_click_menus()
 
     return {"id": new_id, "name": display_name}
 
