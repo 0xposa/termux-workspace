@@ -666,14 +666,18 @@
 
     term.open(termWrap);
 
-    // Hapus dan blokir pop up klik kanan lama bawaan browser / xterm
+    // Hapus dan blokir pop up klik kanan lama bawaan browser / xterm, lalu tampilkan context menu baru yang sempurna
     termWrap.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
       if (isAnyContextMenuVisible()) {
         hideAllContextMenus();
+        return;
       }
+      const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
+      if (inst) inst.term.focus();
+      showTerminalContextMenu(e);
     }, true);
 
     if (term.textarea) {
@@ -681,6 +685,13 @@
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
+        if (isAnyContextMenuVisible()) {
+          hideAllContextMenus();
+          return;
+        }
+        const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
+        if (inst) inst.term.focus();
+        showTerminalContextMenu(e);
       }, true);
     }
 
@@ -1326,23 +1337,29 @@
         inst.term.focus();
       } else if (action === 'term-new-session') {
         await createNewSession();
+      } else if (action === 'term-open-explorer') {
+        openExplorer();
       }
     });
   }
 
   // Listener Klik Kanan & Klik Kiri pada Terminal Container
   if (terminalContainer) {
-    // 1. Klik kanan pada terminal: hapus dan blokir pop up klik kanan lama bawaan browser / xterm
+    // 1. Klik kanan pada terminal: cegah pop up browser lama dan tampilkan context menu desktop yang baru
     terminalContainer.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
       if (isAnyContextMenuVisible()) {
         hideAllContextMenus();
+        return;
       }
+      const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
+      if (inst) inst.term.focus();
+      showTerminalContextMenu(e);
     }, true);
 
-    // 2. Klik kiri pada terminal: jika context menu terbuka, hanya bertindak menutupnya
+    // 2. Klik kiri pada terminal: jika context menu terbuka, hanya bertindak menutupnya; jika tertutup, buka context menu
     terminalContainer.addEventListener('click', (e) => {
       if (terminalContextMenu && terminalContextMenu.contains(e.target)) return;
       if (isAnyContextMenuVisible()) {
@@ -1442,6 +1459,10 @@
     if (isTerminal) {
       e.preventDefault();
       e.stopPropagation();
+      e.stopImmediatePropagation();
+      const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
+      if (inst) inst.term.focus();
+      showTerminalContextMenu(e);
       return;
     }
     const isInput = e.target.tagName === 'INPUT' || (e.target.tagName === 'TEXTAREA' && (!e.target.classList || !e.target.classList.contains('xterm-helper-textarea'))) || e.target.closest('.cm-editor');
