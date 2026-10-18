@@ -70,7 +70,7 @@
   }
 
   // State & Elemen DOM Full Explorer
-  let isExplorerOpen = false;
+  let isExplorerOpen = true;
   let currentExplorerPath = null;
   let currentExplorerItems = [];
 
@@ -91,7 +91,7 @@
   const extraKeysBar = document.getElementById('extra-keys-bar');
 
   // State & Elemen DOM Code Editor (CodeMirror 6)
-  let activeTabType = 'terminal'; // 'terminal' | 'editor'
+  let activeTabType = 'explorer'; // 'explorer' | 'terminal' | 'editor'
   let currentEditingPath = null;
   let cmEditorView = null;
   const openFiles = {}; // { [path]: { name, content, originalContent, isDirty } }
@@ -138,11 +138,14 @@
       }
       sessions = await res.json();
       if (sessions.length === 0) {
-        await createNewSession();
+        await createNewSession(null, activeTabType === 'terminal');
       } else {
+        if (!activeSessionId) {
+          activeSessionId = sessions[0].id;
+        }
         renderTabs();
-        if (!activeSessionId || !sessions.find(s => s.id === activeSessionId)) {
-          switchToSession(sessions[0].id);
+        if (activeTabType === 'terminal') {
+          switchToSession(activeSessionId);
         }
       }
     } catch (e) {
@@ -150,7 +153,7 @@
     }
   }
 
-  async function createNewSession(cwd = null) {
+  async function createNewSession(cwd = null, autoSwitch = true) {
     try {
       const endpoint = cwd ? `/api/sessions?cwd=${encodeURIComponent(cwd)}` : '/api/sessions';
       const res = await apiFetch(endpoint, { method: 'POST' });
@@ -158,7 +161,9 @@
         const newSession = await res.json();
         sessions.push(newSession);
         renderTabs();
-        switchToSession(newSession.id);
+        if (autoSwitch) {
+          switchToSession(newSession.id);
+        }
         return newSession;
       }
     } catch (e) {
@@ -192,6 +197,48 @@
 
   function renderTabs() {
     tabsContainer.innerHTML = '';
+
+    // Tab Explorer (tampil pertama sebagai tab utama)
+    if (isExplorerOpen) {
+      const tab = document.createElement('div');
+      const isActive = activeTabType === 'explorer';
+      tab.className = `tab ${isActive ? 'active' : ''}`;
+
+      const tabIcon = document.createElement('img');
+      tabIcon.className = 'tab-icon';
+      tabIcon.src = '/icons/folder.svg';
+      tabIcon.width = 14;
+      tabIcon.height = 14;
+      tabIcon.alt = '';
+      tab.appendChild(tabIcon);
+
+      const title = document.createElement('span');
+      title.className = 'tab-title';
+      title.textContent = 'Explorer';
+      tab.appendChild(title);
+
+      const btnClose = document.createElement('span');
+      btnClose.className = 'tab-close';
+      btnClose.title = 'Tutup explorer';
+      const closeIcon = document.createElement('img');
+      closeIcon.className = 'tab-close-icon';
+      closeIcon.src = '/icons/close.svg';
+      closeIcon.width = 10;
+      closeIcon.height = 10;
+      closeIcon.alt = '';
+      btnClose.appendChild(closeIcon);
+      btnClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeExplorer();
+      });
+      tab.appendChild(btnClose);
+
+      tab.addEventListener('click', () => {
+        switchToExplorer();
+      });
+
+      tabsContainer.appendChild(tab);
+    }
 
     // Tab sesi terminal
     sessions.forEach(sess => {
@@ -237,48 +284,6 @@
 
       tabsContainer.appendChild(tab);
     });
-
-    // Tab Explorer
-    if (isExplorerOpen) {
-      const tab = document.createElement('div');
-      const isActive = activeTabType === 'explorer';
-      tab.className = `tab ${isActive ? 'active' : ''}`;
-
-      const tabIcon = document.createElement('img');
-      tabIcon.className = 'tab-icon';
-      tabIcon.src = '/icons/folder.svg';
-      tabIcon.width = 14;
-      tabIcon.height = 14;
-      tabIcon.alt = '';
-      tab.appendChild(tabIcon);
-
-      const title = document.createElement('span');
-      title.className = 'tab-title';
-      title.textContent = 'Explorer';
-      tab.appendChild(title);
-
-      const btnClose = document.createElement('span');
-      btnClose.className = 'tab-close';
-      btnClose.title = 'Tutup explorer';
-      const closeIcon = document.createElement('img');
-      closeIcon.className = 'tab-close-icon';
-      closeIcon.src = '/icons/close.svg';
-      closeIcon.width = 10;
-      closeIcon.height = 10;
-      closeIcon.alt = '';
-      btnClose.appendChild(closeIcon);
-      btnClose.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeExplorer();
-      });
-      tab.appendChild(btnClose);
-
-      tab.addEventListener('click', () => {
-        switchToExplorer();
-      });
-
-      tabsContainer.appendChild(tab);
-    }
 
     // Tab file editor
     Object.keys(openFiles).forEach(fPath => {
@@ -351,9 +356,7 @@
   function openExplorer(targetPath = null) {
     isExplorerOpen = true;
     switchToExplorer();
-    if (!currentExplorerPath || targetPath) {
-      loadExplorerPath(targetPath || currentExplorerPath);
-    }
+    loadExplorerPath(targetPath || currentExplorerPath);
   }
 
   function switchToExplorer() {
@@ -807,14 +810,16 @@
       popupMenu.classList.remove('hidden');
       popupSearchInput.value = '';
       filterPopupActions('');
-      setTimeout(() => popupSearchInput.focus(), 50);
+      if (!('ontouchstart' in window) && window.innerWidth > 600) {
+        setTimeout(() => popupSearchInput.focus(), 50);
+      }
     } else {
       popupMenu.classList.add('hidden');
     }
   }
 
   document.addEventListener('click', (e) => {
-    if (!popupMenu.contains(e.target) && e.target !== btnAddSession) {
+    if (!popupMenu.contains(e.target) && !btnAddSession.contains(e.target)) {
       togglePopupMenu(false);
     }
   });
@@ -835,6 +840,32 @@
     }}
   ];
 
+  // Delegasi klik pada kontainer popup items
+  if (popupItemsContainer) {
+    popupItemsContainer.addEventListener('click', (e) => {
+      const item = e.target.closest('.popup-item');
+      if (!item) return;
+      e.stopPropagation();
+      const actionType = item.dataset.action;
+      if (actionType === 'explorer') {
+        openExplorer();
+        togglePopupMenu(false);
+      } else if (actionType === 'terminal') {
+        createNewSession();
+        togglePopupMenu(false);
+      } else if (actionType === 'close') {
+        if (activeTabType === 'editor' && currentEditingPath) {
+          closeFile(currentEditingPath);
+        } else if (activeTabType === 'explorer') {
+          closeExplorer();
+        } else if (activeSessionId) {
+          closeSession(activeSessionId);
+        }
+        togglePopupMenu(false);
+      }
+    });
+  }
+
   function filterPopupActions(query) {
     const q = query.trim().toLowerCase();
     popupItemsContainer.innerHTML = '';
@@ -843,8 +874,12 @@
     filtered.forEach((act) => {
       const item = document.createElement('div');
       item.className = 'popup-item';
+      item.dataset.action = act.id;
       item.textContent = act.name;
-      item.addEventListener('click', act.action);
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        act.action();
+      });
       popupItemsContainer.appendChild(item);
     });
   }
@@ -1204,11 +1239,21 @@
         console.error('Gagal memuat direktori:', err.detail);
         return;
       }
-      const resolvedPath = res.headers.get('X-Current-Path') || path;
+      let resolvedPath = res.headers.get('x-current-path') || res.headers.get('X-Current-Path') || path;
+      const data = await res.json();
+      currentExplorerItems = Array.isArray(data) ? data : [];
+      if (!resolvedPath && currentExplorerItems.length > 0) {
+        const firstItem = currentExplorerItems[0];
+        const lastSlash = firstItem.path.lastIndexOf('/');
+        if (lastSlash > 0) {
+          resolvedPath = firstItem.path.substring(0, lastSlash);
+        } else if (lastSlash === 0) {
+          resolvedPath = '/';
+        }
+      }
       if (resolvedPath) {
         currentExplorerPath = resolvedPath;
       }
-      currentExplorerItems = await res.json();
       renderExplorerUI();
     } catch (err) {
       console.error('Gagal memuat explorer:', err);
