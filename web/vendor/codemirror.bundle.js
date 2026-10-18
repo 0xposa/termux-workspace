@@ -34025,6 +34025,8 @@
     keymap,
     defaultKeymap,
     indentWithTab,
+    undo,
+    redo,
     languages: {
       javascript,
       js: javascript,

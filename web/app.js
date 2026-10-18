@@ -117,6 +117,7 @@
   const explorerContextMenu = document.getElementById('explorer-context-menu');
   const explorerBgContextMenu = document.getElementById('explorer-bg-context-menu');
   const terminalContextMenu = document.getElementById('terminal-context-menu');
+  const editorContextMenu = document.getElementById('editor-context-menu');
   const explorerContent = document.getElementById('explorer-content');
   const contextMenuBackdrop = document.getElementById('context-menu-backdrop');
   let activeContextItem = null; // { path, name, type }
@@ -1128,12 +1129,13 @@
     }
   });
 
-  // --- Context Menu Explorer, Terminal & Background ---
+  // --- Context Menu Explorer, Terminal, Editor & Background ---
   function isAnyContextMenuVisible() {
     return Boolean(
       (explorerContextMenu && !explorerContextMenu.classList.contains('hidden')) ||
       (terminalContextMenu && !terminalContextMenu.classList.contains('hidden')) ||
-      (explorerBgContextMenu && !explorerBgContextMenu.classList.contains('hidden'))
+      (explorerBgContextMenu && !explorerBgContextMenu.classList.contains('hidden')) ||
+      (editorContextMenu && !editorContextMenu.classList.contains('hidden'))
     );
   }
 
@@ -1171,10 +1173,18 @@
     }
   }
 
+  function hideEditorContextMenu() {
+    if (editorContextMenu) editorContextMenu.classList.add('hidden');
+    if (!isAnyContextMenuVisible()) {
+      hideContextMenuBackdrop();
+    }
+  }
+
   function hideAllContextMenus() {
     if (explorerContextMenu) explorerContextMenu.classList.add('hidden');
     if (terminalContextMenu) terminalContextMenu.classList.add('hidden');
     if (explorerBgContextMenu) explorerBgContextMenu.classList.add('hidden');
+    if (editorContextMenu) editorContextMenu.classList.add('hidden');
     activeContextItem = null;
     hideContextMenuBackdrop();
   }
@@ -1198,7 +1208,8 @@
       const isInsideAnyMenu =
         (explorerContextMenu && explorerContextMenu.contains(e.target)) ||
         (terminalContextMenu && terminalContextMenu.contains(e.target)) ||
-        (explorerBgContextMenu && explorerBgContextMenu.contains(e.target));
+        (explorerBgContextMenu && explorerBgContextMenu.contains(e.target)) ||
+        (editorContextMenu && editorContextMenu.contains(e.target));
       if (!isInsideAnyMenu) {
         hideAllContextMenus();
       }
@@ -1214,6 +1225,7 @@
   function showContextMenu(e, item) {
     hideTerminalContextMenu();
     hideExplorerBgContextMenu();
+    hideEditorContextMenu();
     activeContextItem = item;
     const isDir = item.type === 'dir';
     const isReadable = !isDir && isReadableTextFile(item.name);
@@ -1268,6 +1280,7 @@
   function showTerminalContextMenu(e) {
     hideContextMenu();
     hideExplorerBgContextMenu();
+    hideEditorContextMenu();
     if (!terminalContextMenu) return;
 
     const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
@@ -1416,10 +1429,226 @@
     });
   }
 
+  // --- Context Menu Code Editor Khas Desktop ---
+  function showEditorContextMenu(e) {
+    hideContextMenu();
+    hideTerminalContextMenu();
+    hideExplorerBgContextMenu();
+    if (!editorContextMenu) return;
+
+    if (cmEditorView) {
+      // Jika posisi klik berada di luar seleksi saat ini, posisikan kursor di koordinat klik
+      if (e.clientX !== undefined && e.clientY !== undefined) {
+        try {
+          const clickPos = cmEditorView.posAtCoords({ x: e.clientX, y: e.clientY });
+          if (clickPos !== null) {
+            const { from, to } = cmEditorView.state.selection.main;
+            if (clickPos < from || clickPos > to) {
+              cmEditorView.dispatch({ selection: { anchor: clickPos } });
+            }
+          }
+        } catch (err) {}
+      }
+      cmEditorView.focus();
+    }
+
+    const hasSelection = Boolean(cmEditorView && !cmEditorView.state.selection.main.empty);
+    const hasActiveFile = Boolean(currentEditingPath);
+
+    const copyItem = editorContextMenu.querySelector('[data-action="editor-copy"]');
+    const cutItem = editorContextMenu.querySelector('[data-action="editor-cut"]');
+    const saveItem = editorContextMenu.querySelector('[data-action="editor-save"]');
+    const sendItem = editorContextMenu.querySelector('[data-action="editor-send-terminal"]');
+    const closeItem = editorContextMenu.querySelector('[data-action="editor-close"]');
+
+    if (copyItem) {
+      if (hasSelection) copyItem.classList.remove('disabled');
+      else copyItem.classList.add('disabled');
+    }
+    if (cutItem) {
+      if (hasSelection) cutItem.classList.remove('disabled');
+      else cutItem.classList.add('disabled');
+    }
+    if (saveItem) {
+      if (hasActiveFile) saveItem.classList.remove('disabled');
+      else saveItem.classList.add('disabled');
+    }
+    if (sendItem) {
+      if (hasActiveFile) sendItem.classList.remove('disabled');
+      else sendItem.classList.add('disabled');
+    }
+    if (closeItem) {
+      if (hasActiveFile) closeItem.classList.remove('disabled');
+      else closeItem.classList.add('disabled');
+    }
+
+    editorContextMenu.classList.remove('hidden');
+    showContextMenuBackdrop();
+
+    let left, top;
+    if (e.clientX !== undefined && e.clientY !== undefined) {
+      left = e.clientX;
+      top = e.clientY;
+    } else if (e.touches && e.touches[0]) {
+      left = e.touches[0].clientX;
+      top = e.touches[0].clientY;
+    } else {
+      left = window.innerWidth / 2 - 115;
+      top = window.innerHeight / 2 - 120;
+    }
+
+    const menuWidth = 230;
+    const menuHeight = 290;
+    if (left + menuWidth > window.innerWidth) {
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+    if (top + menuHeight > window.innerHeight) {
+      top = Math.max(8, window.innerHeight - menuHeight - 8);
+    }
+
+    editorContextMenu.style.left = `${Math.max(8, left)}px`;
+    editorContextMenu.style.top = `${Math.max(8, top)}px`;
+  }
+
+  if (editorContextMenu) {
+    editorContextMenu.addEventListener('click', async (e) => {
+      const menuItem = e.target.closest('.context-menu-item');
+      if (!menuItem || menuItem.classList.contains('disabled')) return;
+      const action = menuItem.dataset.action;
+      hideEditorContextMenu();
+
+      if (!cmEditorView) return;
+
+      if (action === 'editor-undo') {
+        if (window.CM6 && window.CM6.undo) {
+          window.CM6.undo(cmEditorView);
+        }
+        cmEditorView.focus();
+      } else if (action === 'editor-redo') {
+        if (window.CM6 && window.CM6.redo) {
+          window.CM6.redo(cmEditorView);
+        }
+        cmEditorView.focus();
+      } else if (action === 'editor-cut') {
+        const { from, to } = cmEditorView.state.selection.main;
+        if (from !== to) {
+          const selection = cmEditorView.state.sliceDoc(from, to);
+          let copied = false;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+              await navigator.clipboard.writeText(selection);
+              copied = true;
+            } catch (err) {}
+          }
+          if (!copied) {
+            try {
+              const ta = document.createElement('textarea');
+              ta.value = selection;
+              ta.style.position = 'fixed';
+              ta.style.opacity = '0';
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+            } catch (err) {}
+          }
+          cmEditorView.dispatch({
+            changes: { from, to, insert: '' },
+            selection: { anchor: from },
+            scrollIntoView: true,
+            userEvent: 'delete.cut'
+          });
+        }
+        cmEditorView.focus();
+      } else if (action === 'editor-copy') {
+        const { from, to } = cmEditorView.state.selection.main;
+        if (from !== to) {
+          const selection = cmEditorView.state.sliceDoc(from, to);
+          let copied = false;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+              await navigator.clipboard.writeText(selection);
+              copied = true;
+            } catch (err) {}
+          }
+          if (!copied) {
+            try {
+              const ta = document.createElement('textarea');
+              ta.value = selection;
+              ta.style.position = 'fixed';
+              ta.style.opacity = '0';
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+            } catch (err) {}
+          }
+        }
+        cmEditorView.focus();
+      } else if (action === 'editor-paste') {
+        let text = '';
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          try {
+            text = await navigator.clipboard.readText();
+          } catch (err) {}
+        }
+        if (!text) {
+          text = prompt('Tempel teks ke editor:');
+        }
+        if (text) {
+          const { from, to } = cmEditorView.state.selection.main;
+          cmEditorView.dispatch({
+            changes: { from, to, insert: text },
+            selection: { anchor: from + text.length },
+            scrollIntoView: true,
+            userEvent: 'input.paste'
+          });
+        }
+        cmEditorView.focus();
+      } else if (action === 'editor-select-all') {
+        cmEditorView.dispatch({
+          selection: { anchor: 0, head: cmEditorView.state.doc.length },
+          userEvent: 'select'
+        });
+        cmEditorView.focus();
+      } else if (action === 'editor-save') {
+        saveCurrentFile();
+        cmEditorView.focus();
+      } else if (action === 'editor-send-terminal') {
+        if (currentEditingPath) {
+          const escaped = shellEscape(currentEditingPath);
+          sendToActiveTerminal(escaped + ' ');
+          if (activeSessionId) {
+            switchToSession(activeSessionId);
+          }
+        }
+      } else if (action === 'editor-close') {
+        if (currentEditingPath) {
+          closeFile(currentEditingPath);
+        }
+      }
+    });
+  }
+
+  // Listener Klik Kanan pada Area Code Editor
+  if (editorArea) {
+    editorArea.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      if (isAnyContextMenuVisible()) {
+        hideAllContextMenus();
+        return;
+      }
+      showEditorContextMenu(e);
+    }, true);
+  }
+
   // --- Context Menu Background Explorer (Area Kosong) ---
   function showExplorerBgContextMenu(e) {
     hideContextMenu();
     hideTerminalContextMenu();
+    hideEditorContextMenu();
     if (!explorerBgContextMenu) return;
 
     explorerBgContextMenu.classList.remove('hidden');
@@ -1523,7 +1752,15 @@
       showTerminalContextMenu(e);
       return;
     }
-    const isInput = e.target.tagName === 'INPUT' || (e.target.tagName === 'TEXTAREA' && (!e.target.classList || !e.target.classList.contains('xterm-helper-textarea'))) || e.target.closest('.cm-editor');
+    const isEditor = e.target.closest('#editor-area') || e.target.closest('.cm-editor') || e.target.closest('#editor-cm-container');
+    if (isEditor) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      showEditorContextMenu(e);
+      return;
+    }
+    const isInput = e.target.tagName === 'INPUT' || (e.target.tagName === 'TEXTAREA' && (!e.target.classList || !e.target.classList.contains('xterm-helper-textarea')));
     if (!isInput) {
       e.preventDefault();
     }
