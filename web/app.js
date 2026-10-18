@@ -115,6 +115,9 @@
 
   // Elemen Context Menu & Modal Filesystem
   const explorerContextMenu = document.getElementById('explorer-context-menu');
+  const explorerBgContextMenu = document.getElementById('explorer-bg-context-menu');
+  const terminalContextMenu = document.getElementById('terminal-context-menu');
+  const explorerContent = document.getElementById('explorer-content');
   let activeContextItem = null; // { path, name, type }
 
   const fsModal = document.getElementById('fs-modal');
@@ -341,6 +344,7 @@
 
   function switchToSession(sessionId) {
     if (!sessionId) return;
+    hideAllContextMenus();
     activeTabType = 'terminal';
     activeSessionId = sessionId;
 
@@ -368,6 +372,7 @@
   }
 
   function switchToExplorer() {
+    hideAllContextMenus();
     activeTabType = 'explorer';
 
     terminalArea.classList.add('hidden');
@@ -514,6 +519,7 @@
   function switchToEditor(filePath) {
     const fileData = openFiles[filePath];
     if (!fileData) return;
+    hideAllContextMenus();
     activeTabType = 'editor';
     currentEditingPath = filePath;
 
@@ -1062,19 +1068,47 @@
     }
   });
 
-  // --- Context Menu Explorer ---
+  // --- Context Menu Explorer, Terminal & Background ---
   function hideContextMenu() {
-    explorerContextMenu.classList.add('hidden');
+    if (explorerContextMenu) explorerContextMenu.classList.add('hidden');
     activeContextItem = null;
   }
 
+  function hideTerminalContextMenu() {
+    if (terminalContextMenu) terminalContextMenu.classList.add('hidden');
+  }
+
+  function hideExplorerBgContextMenu() {
+    if (explorerBgContextMenu) explorerBgContextMenu.classList.add('hidden');
+  }
+
+  function hideAllContextMenus() {
+    hideContextMenu();
+    hideTerminalContextMenu();
+    hideExplorerBgContextMenu();
+  }
+
   document.addEventListener('click', (e) => {
-    if (!explorerContextMenu.contains(e.target)) {
+    if (explorerContextMenu && !explorerContextMenu.contains(e.target)) {
       hideContextMenu();
+    }
+    if (terminalContextMenu && !terminalContextMenu.contains(e.target) && (!terminalContainer || !terminalContainer.contains(e.target))) {
+      hideTerminalContextMenu();
+    }
+    if (explorerBgContextMenu && !explorerBgContextMenu.contains(e.target)) {
+      hideExplorerBgContextMenu();
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (terminalContextMenu && !terminalContextMenu.classList.contains('hidden')) {
+      hideTerminalContextMenu();
     }
   });
 
   function showContextMenu(e, item) {
+    hideTerminalContextMenu();
+    hideExplorerBgContextMenu();
     activeContextItem = item;
     const isDir = item.type === 'dir';
     const isReadable = !isDir && isReadableTextFile(item.name);
@@ -1098,21 +1132,239 @@
 
     explorerContextMenu.classList.remove('hidden');
 
-    const rect = e.target.getBoundingClientRect();
-    const menuWidth = 190;
+    let left, top;
+    if (e.clientX !== undefined && e.clientY !== undefined) {
+      left = e.clientX;
+      top = e.clientY;
+    } else if (e.touches && e.touches[0]) {
+      left = e.touches[0].clientX;
+      top = e.touches[0].clientY;
+    } else {
+      const rect = e.target.getBoundingClientRect();
+      left = rect.right + 4;
+      top = rect.top;
+    }
+
+    const menuWidth = 195;
     const menuHeight = 220;
-    let left = rect.right + 4;
-    let top = rect.top;
 
     if (left + menuWidth > window.innerWidth) {
-      left = rect.left - menuWidth;
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
     }
     if (top + menuHeight > window.innerHeight) {
-      top = window.innerHeight - menuHeight - 8;
+      top = Math.max(8, window.innerHeight - menuHeight - 8);
     }
     explorerContextMenu.style.left = `${Math.max(8, left)}px`;
     explorerContextMenu.style.top = `${Math.max(8, top)}px`;
   }
+
+  // --- Context Menu Terminal Khas Desktop ---
+  function showTerminalContextMenu(e) {
+    hideContextMenu();
+    hideExplorerBgContextMenu();
+    if (!terminalContextMenu) return;
+
+    const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
+    const hasSelection = inst && inst.term && inst.term.hasSelection();
+    const copyItem = terminalContextMenu.querySelector('[data-action="term-copy"]');
+    if (copyItem) {
+      if (hasSelection) {
+        copyItem.classList.remove('disabled');
+      } else {
+        copyItem.classList.add('disabled');
+      }
+    }
+
+    terminalContextMenu.classList.remove('hidden');
+
+    let left, top;
+    if (e.clientX !== undefined && e.clientY !== undefined) {
+      left = e.clientX;
+      top = e.clientY;
+    } else if (e.touches && e.touches[0]) {
+      left = e.touches[0].clientX;
+      top = e.touches[0].clientY;
+    } else {
+      left = window.innerWidth / 2 - 110;
+      top = window.innerHeight / 2 - 90;
+    }
+
+    const menuWidth = 230;
+    const menuHeight = 210;
+    if (left + menuWidth > window.innerWidth) {
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+    if (top + menuHeight > window.innerHeight) {
+      top = Math.max(8, window.innerHeight - menuHeight - 8);
+    }
+
+    terminalContextMenu.style.left = `${Math.max(8, left)}px`;
+    terminalContextMenu.style.top = `${Math.max(8, top)}px`;
+  }
+
+  if (terminalContextMenu) {
+    terminalContextMenu.addEventListener('click', async (e) => {
+      const menuItem = e.target.closest('.context-menu-item');
+      if (!menuItem || menuItem.classList.contains('disabled')) return;
+      const action = menuItem.dataset.action;
+      hideTerminalContextMenu();
+
+      const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
+      if (!inst) return;
+
+      if (action === 'term-copy') {
+        const selection = inst.term.getSelection();
+        if (selection) {
+          let copied = false;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+              await navigator.clipboard.writeText(selection);
+              copied = true;
+            } catch (err) {}
+          }
+          if (!copied) {
+            try {
+              const ta = document.createElement('textarea');
+              ta.value = selection;
+              ta.style.position = 'fixed';
+              ta.style.opacity = '0';
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+            } catch (e) {}
+          }
+        }
+        inst.term.focus();
+      } else if (action === 'term-paste') {
+        try {
+          const text = await navigator.clipboard.readText();
+          if (text && inst.ws && inst.ws.readyState === WebSocket.OPEN) {
+            inst.ws.send(text);
+          }
+        } catch (err) {
+          const text = prompt('Tempel teks ke terminal:');
+          if (text && inst.ws && inst.ws.readyState === WebSocket.OPEN) {
+            inst.ws.send(text);
+          }
+        }
+        inst.term.focus();
+      } else if (action === 'term-select-all') {
+        inst.term.selectAll();
+        inst.term.focus();
+      } else if (action === 'term-clear') {
+        inst.term.clear();
+        if (inst.ws && inst.ws.readyState === WebSocket.OPEN) {
+          inst.ws.send('\x0c'); // Ctrl+L
+        }
+        inst.term.focus();
+      } else if (action === 'term-new-session') {
+        await createNewSession();
+      }
+    });
+  }
+
+  // Listener Klik Kanan & Klik Kiri pada Terminal Container
+  if (terminalContainer) {
+    // 1. Klik kanan pada terminal: tampilkan context menu desktop
+    terminalContainer.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
+      if (inst) inst.term.focus();
+      showTerminalContextMenu(e);
+    });
+
+    // 2. Klik kiri pada terminal: tampilkan context menu desktop (seperti di desktop/mobile)
+    terminalContainer.addEventListener('click', (e) => {
+      if (terminalContextMenu && terminalContextMenu.contains(e.target)) return;
+      const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
+      if (inst) inst.term.focus();
+
+      // Jika context menu terminal sedang terbuka, klik berikutnya menutupnya
+      if (terminalContextMenu && !terminalContextMenu.classList.contains('hidden')) {
+        hideTerminalContextMenu();
+        return;
+      }
+      showTerminalContextMenu(e);
+    });
+  }
+
+  // --- Context Menu Background Explorer (Area Kosong) ---
+  function showExplorerBgContextMenu(e) {
+    hideContextMenu();
+    hideTerminalContextMenu();
+    if (!explorerBgContextMenu) return;
+
+    explorerBgContextMenu.classList.remove('hidden');
+
+    let left, top;
+    if (e.clientX !== undefined && e.clientY !== undefined) {
+      left = e.clientX;
+      top = e.clientY;
+    } else if (e.touches && e.touches[0]) {
+      left = e.touches[0].clientX;
+      top = e.touches[0].clientY;
+    } else {
+      left = window.innerWidth / 2 - 100;
+      top = window.innerHeight / 2 - 100;
+    }
+
+    const menuWidth = 200;
+    const menuHeight = 200;
+    if (left + menuWidth > window.innerWidth) {
+      left = Math.max(8, window.innerWidth - menuWidth - 8);
+    }
+    if (top + menuHeight > window.innerHeight) {
+      top = Math.max(8, window.innerHeight - menuHeight - 8);
+    }
+
+    explorerBgContextMenu.style.left = `${Math.max(8, left)}px`;
+    explorerBgContextMenu.style.top = `${Math.max(8, top)}px`;
+  }
+
+  if (explorerBgContextMenu) {
+    explorerBgContextMenu.addEventListener('click', (e) => {
+      const menuItem = e.target.closest('.context-menu-item');
+      if (!menuItem) return;
+      const action = menuItem.dataset.action;
+      hideExplorerBgContextMenu();
+
+      if (action === 'bg-new-file') {
+        if (explorerBtnNewFile) explorerBtnNewFile.click();
+      } else if (action === 'bg-new-folder') {
+        if (explorerBtnNewFolder) explorerBtnNewFolder.click();
+      } else if (action === 'bg-open-terminal') {
+        if (explorerBtnOpenTerminal) explorerBtnOpenTerminal.click();
+      } else if (action === 'bg-refresh') {
+        refreshExplorer();
+      } else if (action === 'bg-toggle-hidden') {
+        showHiddenFiles = !showHiddenFiles;
+        renderExplorerUI();
+      }
+    });
+  }
+
+  // Listener Klik Kanan pada Area Kosong Explorer
+  if (explorerContent) {
+    explorerContent.addEventListener('contextmenu', (e) => {
+      // Abaikan jika klik kanan tepat di atas baris file/folder atau tombol titik tiga
+      if (e.target.closest('.explorer-row') || e.target.closest('.explorer-grid-card') || e.target.closest('.explorer-dots-btn')) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      showExplorerBgContextMenu(e);
+    });
+  }
+
+  // Cegah menu klik kanan default browser yang mengganggu (kecuali input, textarea, dan editor)
+  document.addEventListener('contextmenu', (e) => {
+    const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.cm-editor');
+    if (!isInput) {
+      e.preventDefault();
+    }
+  });
 
   explorerContextMenu.addEventListener('click', async (e) => {
     const menuItem = e.target.closest('.context-menu-item');
@@ -1447,6 +1699,13 @@
             }
           });
 
+          // Klik Kanan pada Card Folder/File (Tampilkan Opsi Titik 3)
+          card.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showContextMenu(e, item);
+          });
+
           explorerList.appendChild(card);
         });
       } else {
@@ -1516,6 +1775,13 @@
                 alert(`File "${item.name}" adalah file biner/media dan tidak dapat diedit langsung.`);
               }
             }
+          });
+
+          // Klik Kanan pada Baris Folder/File (Tampilkan Opsi Titik 3)
+          row.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showContextMenu(e, item);
           });
 
           explorerList.appendChild(row);

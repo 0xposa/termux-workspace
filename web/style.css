@@ -528,6 +528,23 @@ body, html {
   font-size: 13px;
   width: 16px;
   text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.context-menu-shortcut {
+  margin-left: auto;
+  font-size: 10px;
+  color: #8E95A5;
+  padding-left: 14px;
+  font-family: monospace, ui-monospace, SFMono-Regular, monospace;
+  opacity: 0.8;
+}
+
+.terminal-context-menu {
+  min-width: 225px;
 }
 
 /* Modal Dialog Interaktif Filesystem - macOS Glass Sheet */

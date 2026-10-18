@@ -144,7 +144,7 @@
     </div>
   </div>
 
-  <!-- Context Menu Explorer (Titik Tiga) -->
+  <!-- Context Menu Explorer (Titik Tiga & Klik Kanan File/Folder) -->
   <div id="explorer-context-menu" class="explorer-context-menu hidden">
     <div class="context-menu-item" data-action="open-terminal">
       <img src="/icons/terminal.svg" class="context-menu-icon" width="16" height="16" alt="" />
@@ -167,6 +167,79 @@
     <div class="context-menu-item danger" data-action="delete">
       <img src="/icons/trash.svg" class="context-menu-icon" width="16" height="16" alt="" />
       Delete
+    </div>
+  </div>
+
+  <!-- Context Menu Area Kosong Explorer (Klik Kanan Background) -->
+  <div id="explorer-bg-context-menu" class="explorer-context-menu hidden">
+    <div class="context-menu-item" data-action="bg-new-file">
+      <span class="context-menu-icon" style="font-size:15px;font-weight:bold;line-height:1;">+</span>
+      Buat File Baru
+    </div>
+    <div class="context-menu-item" data-action="bg-new-folder">
+      <img src="/icons/folder.svg" class="context-menu-icon" width="16" height="16" alt="" />
+      Buat Folder Baru
+    </div>
+    <div class="context-menu-item" data-action="bg-open-terminal">
+      <img src="/icons/terminal.svg" class="context-menu-icon" width="16" height="16" alt="" />
+      Buka Terminal di Sini
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" data-action="bg-refresh">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="context-menu-icon">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+      </svg>
+      Muat Ulang (Refresh)
+    </div>
+    <div class="context-menu-item" data-action="bg-toggle-hidden">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="context-menu-icon">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+      File Tersembunyi (On/Off)
+    </div>
+  </div>
+
+  <!-- Context Menu Terminal Khas Desktop (Klik Kanan & Klik Kiri) -->
+  <div id="terminal-context-menu" class="explorer-context-menu terminal-context-menu hidden">
+    <div class="context-menu-item" data-action="term-copy">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="context-menu-icon">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      Salin (Copy)
+      <span class="context-menu-shortcut">Ctrl+Shift+C</span>
+    </div>
+    <div class="context-menu-item" data-action="term-paste">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="context-menu-icon">
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+      </svg>
+      Tempel (Paste)
+      <span class="context-menu-shortcut">Ctrl+Shift+V</span>
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" data-action="term-select-all">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="context-menu-icon">
+        <path d="M3 3h4v4H3zM17 3h4v4h-4zM17 17h4v4h-4zM3 17h4v4H3zM9 5h6M9 19h6M5 9v6M19 9v6"></path>
+      </svg>
+      Pilih Semua (Select All)
+      <span class="context-menu-shortcut">Ctrl+A</span>
+    </div>
+    <div class="context-menu-item" data-action="term-clear">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="context-menu-icon">
+        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+      Bersihkan Layar (Clear)
+      <span class="context-menu-shortcut">Ctrl+L</span>
+    </div>
+    <div class="context-menu-separator"></div>
+    <div class="context-menu-item" data-action="term-new-session">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="context-menu-icon">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+      Sesi Baru (New Session)
     </div>
   </div>
 
