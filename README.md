@@ -1,165 +1,21 @@
 # Termux Workspace
 
-Add-on resmi untuk Termux (versi F-Droid, `com.termux`, tidak dimodifikasi) yang menyediakan lingkungan IDE dan Terminal Workspace modern berbasis web serta aplikasi Android WebView fullscreen immersive dengan PTY shell Termux asli melalui tmux.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/0xposa/termux-workspace)](https://github.com/0xposa/termux-workspace/stargazers)
+[![Twitter Follow](https://img.shields.io/twitter/follow/0xposa?style=social)](https://x.com/0xposa)
 
-*An official add-on for Termux (F-Droid version, `com.termux`, unmodified) providing a modern web-based IDE and terminal workspace, along with a fullscreen immersive Android Kotlin WebView add-on running native Termux PTY shells via tmux.*
+An official add-on for Termux (F-Droid version, `com.termux`, unmodified) providing a modern web-based IDE and terminal workspace, along with a fullscreen immersive Android Kotlin WebView companion running native Termux PTY shells via tmux.
 
----
-
-## 🇮🇩 Bahasa Indonesia
-
-### 🌟 Gambaran Umum & Fungsi
-**Termux Workspace** mengubah perangkat Android Anda menjadi stasiun kerja pemrograman (coding workstation) yang lengkap dan mandiri. Dirancang khusus untuk lingkungan Termux tanpa memerlukan root, aplikasi ini menghadirkan pengalaman layaknya desktop IDE (seperti VS Code / macOS Finder) langsung melalui browser web atau aplikasi pendamping Android.
-
-Proyek ini terdiri dari 3 pilar utama:
-1. **Backend Server (Python / FastAPI / Uvicorn)**: Mengelola sesi PTY shell, interaksi `tmux`, autentikasi token, serta API sistem berkas (Filesystem REST API).
-2. **Web Frontend (Vanilla JS, CSS & HTML)**: Antarmuka modern bertema gelap *macOS Frosted Glass*, Code Editor CodeMirror 6, Dual Storage File Manager, dan terminal xterm.js responsif.
-3. **Aplikasi Android Add-on (Kotlin)**: Wrapper WebView *fullscreen immersive* yang secara otomatis memicu server Termux di latar belakang menggunakan Termux `RUN_COMMAND` Service.
+*Add-on resmi untuk Termux (versi F-Droid, `com.termux`, tanpa modifikasi) yang menyediakan lingkungan IDE dan Terminal Workspace modern berbasis web serta aplikasi Android WebView fullscreen immersive dengan PTY shell Termux asli melalui tmux.*
 
 ---
 
-### 🚀 Fitur-Fitur Utama
-
-#### 1. Dual Storage File Manager
-* **Termux Storage (`~`)**: Akses cepat ke direktori home Termux (`$HOME` / `/data/data/com.termux/files/home`) untuk seluruh proyek, repositori git, script, dan konfigurasi Linux Anda.
-* **Android Storage (`/sdcard`)**: Akses penuh ke penyimpanan bersama internal Android (`/storage/emulated/0`) untuk mengelola file di folder *Download*, *Documents*, *Pictures*, *DCIM*, atau project eksternal.
-* **Pill Storage Switcher**: Tombol pengalih cepat berbentuk pill di toolbar explorer untuk berpindah antara Termux Storage dan Android Storage secara instan.
-* **Smart Breadcrumbs**: Tampilan hierarki folder yang bersih berakar dari `📦 Termux Storage` dan `📱 Android Storage` dengan proteksi bawaan agar navigasi tidak melompat ke root sistem yang terlarang (mencegah error *403 Forbidden*).
-* **Dua Mode Tampilan**:
-  * **List Mode**: Tampilan tabel daftar tradisional dengan ikon tipe file, nama file, badge bahasa, dan menu aksi.
-  * **Grid Mode**: Tampilan kartu ikon modern ala *macOS Finder* yang memudahkan visualisasi file dan folder.
-* **Toggle File Tersembunyi (Dotfiles)**: File tersembunyi (diawali titik `.`) disembunyikan secara default untuk menjaga kebersihan visual, dan dapat ditampilkan/disembunyikan kapan saja melalui tombol mata di toolbar.
-* **Filter Pencarian Cepat**: Filter pencarian *real-time* yang menyaring file dan folder di direktori aktif saat Anda mengetik.
-* **Operasi Berkas Lengkap**:
-  * Buat File Baru & Buat Folder Baru.
-  * Ganti Nama (Rename) file/folder.
-  * Pindahkan (Move) file/folder ke direktori lain.
-  * Hapus (Delete) file/folder dengan dialog konfirmasi aman.
-  * Buka di Terminal (`Open in Terminal`) atau Buka di Editor (`Open in Editor`).
-* **Desktop Context Menu (Klik Kanan)**:
-  * Klik kanan pada file atau folder menampilkan menu opsi lengkap.
-  * Klik kanan pada area kosong explorer menampilkan menu untuk membuat file/folder baru, membuka terminal di lokasi tersebut, menyegarkan tampilan (refresh), atau mengalihkan file tersembunyi.
-
-#### 2. Code Editor Modern (CodeMirror 6)
-* **Full-View Editor**: Mode penyuntingan fokus layar penuh tanpa distraksi *split screen*.
-* **Syntax Highlighting Lengkap**: Mendukung JavaScript, TypeScript, Python, HTML, CSS, JSON, Markdown, Shell script (`.sh`, `.bash`, `.zsh`), YAML, TOML, SQL, dan banyak lagi.
-* **One Dark Theme**: Tema gelap kontras tinggi yang nyaman di mata untuk sesi coding jangka panjang.
-* **Sistem Tab Editor**: Buka banyak file sekaligus dalam tab terpisah, dilengkapi indikator perubahan belum disimpan (*dirty indicator* `●`) dan tombol tutup tab.
-* **Desktop Right-Click Context Menu**: Menu klik kanan desktop khusus di area editor dengan opsi:
-  * **Potong (Cut)** & **Salin (Copy)** seleksi teks.
-  * **Tempel (Paste)** teks dari clipboard.
-  * **Pilih Semua (Select All)** teks dalam dokumen.
-  * **Simpan File (Save)** (`Ctrl + S`).
-  * **Kirim Path ke Terminal**: Mengetikkan path file yang sedang aktif ke terminal yang sedang berjalan secara instan.
-  * **Tutup File**.
-* **Status Bar Informatif**: Menampilkan posisi kursor (Baris/Kolom - Ln/Col), jumlah total karakter, encoding UTF-8, serta format bahasa file yang aktif.
-
-#### 3. Terminal Multi-Sesi (xterm.js & PTY/tmux)
-* **Manajemen Multi-Sesi**: Jalankan banyak sesi terminal independen sekaligus dengan tab navigasi.
-* **Integrasi Native tmux & PTY**: Terminal terhubung langsung ke shell Termux asli melalui WebSocket dan `pty.fork`, memastikan kompatibilitas penuh dengan tool CLI (vim, nano, htop, git, python, dll.).
-* **Desktop Terminal Context Menu**: Klik kanan pada terminal menampilkan menu desktop (Salin seleksi, Tempel dari clipboard, Pilih semua teks, Bersihkan layar / Clear, Sesi baru, Buka Termux Storage, dan Buka Android Storage).
-* **Bebas Konflik Menu**: Seluruh menu klik kanan default browser dan popup mouse tmux dinonaktifkan secara bersih sehingga hanya menu desktop Termux Workspace yang muncul.
-* **Mobile Extra Keys Bar**: Tombol bantu khusus keyboard mobile di bagian bawah (Esc, Tab, Ctrl toggle, Alt toggle, Panah Kiri, Atas, Bawah, Kanan).
-
-#### 4. Keamanan & Performa Tinggi
-* **Isolasi Localhost**: Server hanya melakukan binding secara eksklusif ke IP loopback `127.0.0.1`.
-* **Autentikasi Token Aman**: Menggunakan token hex acak 64-karakter dengan verifikasi *constant-time* (`secrets.compare_digest`) guna mencegah serangan *timing attack*.
-* **Proteksi WebSocket Origin**: Menolak koneksi WebSocket dari luar origin terpercaya (`http://127.0.0.1:24817`).
-* **Path Traversal Sandboxing**: Endpoint sistem berkas memvalidasi dan membatasi akses direktori hanya ke lingkungan Termux Home (`$HOME`) dan Android Shared Storage (`/storage/emulated/0`).
-* **100% Offline (Zero CDN)**: Seluruh pustaka JavaScript (xterm.js, FitAddon, CodeMirror 6) dan aset ikon SVG/PNG tersimpan secara lokal tanpa bergantung pada koneksi internet.
+## 👨‍💻 Author & Maintainer
+Created and maintained by:
+* **Twitter / X**: [@0xposa](https://x.com/0xposa)
+* **GitHub**: [@0xposa](https://github.com/0xposa)
 
 ---
-
-### 📦 Persyaratan Sistem
-1. Perangkat Android (Android 7.0+ disarankan).
-2. Aplikasi **Termux resmi dari F-Droid** (package `com.termux`).
-3. Akses penyimpanan bersama Android: Jalankan `termux-setup-storage` di Termux untuk memberikan izin akses ke `/storage/emulated/0`.
-4. Paket dasar: `python`, `tmux`, `nodejs`, dan `git`.
-
----
-
-### 🛠️ Panduan Instalasi & Pengaturan
-
-Jalankan perintah berikut di dalam Termux:
-```bash
-# Clone repositori
-git clone https://github.com/0xposa/termux-workspace.git ~/termux-workspace
-cd ~/termux-workspace
-
-# Berikan izin eksekusi pada skrip
-chmod +x setup.sh start.sh preview.sh
-
-# Berikan izin akses penyimpanan Android jika belum
-termux-setup-storage
-
-# Jalankan skrip setup otomatis
-./setup.sh
-```
-
-Skrip `setup.sh` bersifat idempoten dan akan secara otomatis:
-1. Memperbarui dan memasang paket Termux yang diperlukan (`python`, `tmux`, `nodejs`, `git`).
-2. Memasang dependensi Python (`fastapi`, `uvicorn`, `websockets`, `pydantic`).
-3. Memastikan dependensi frontend vendor lokal tersedia.
-4. Menambahkan baris konfigurasi `allow-external-apps=true` di `~/.termux/termux.properties`.
-
----
-
-### 🚦 Cara Menjalankan
-
-#### Opsi 1: Mode Produksi (start.sh)
-Gunakan opsi ini untuk penggunaan harian dengan proteksi token keamanan:
-```bash
-./start.sh
-```
-Skrip akan menyalakan server latar belakang pada port `24817` dan mencetak tautan akses:
-```text
-http://127.0.0.1:24817/?token=<64_karakter_token_acak>
-```
-Buka tautan tersebut di browser web Android Anda (Chrome, Kiwi, Firefox, dsb.).
-
-Untuk merestart atau menghentikan server produksi:
-```bash
-./start.sh --restart
-```
-
-#### Opsi 2: Mode Live Development & Preview (preview.sh)
-Gunakan opsi ini jika Anda ingin mengembangkan atau menguji kode antarmuka frontend/backend dengan fitur *live reload* dan tanpa autentikasi token:
-```bash
-# Jalankan server preview pada port 8000
-./preview.sh
-
-# Atau nyalakan dan langsung buka di browser:
-./preview.sh --open
-```
-- URL Akses: `http://127.0.0.1:8000/` (Bebas token, auto-reload aktif).
-- Menghentikan server preview: `./preview.sh --stop`.
-
-#### Opsi 3: Menggunakan Aplikasi Android Add-on (APK)
-1. **Dapatkan APK**:
-   Setiap kali commit di-push ke branch `main`, GitHub Actions akan otomatis mengompilasi APK debug via workflow `.github/workflows/build-apk.yml`. Unduh file `app-debug.apk` dari tab **Actions** $\to$ **Artifacts** di repositori GitHub.
-2. **Berikan Izin RUN_COMMAND**:
-   Buka **Pengaturan Android** $\to$ **Aplikasi** $\to$ **Termux Workspace** $\to$ **Izin** $\to$ **Izin Tambahan** $\to$ Aktifkan **"Run commands in Termux environment"** (`com.termux.permission.RUN_COMMAND`).
-3. **Buka Aplikasi**:
-   Buka aplikasi dari app drawer perangkat Anda. Aplikasi akan otomatis menjalankan server di Termux dan membuka antarmuka workspace secara *fullscreen immersive*.
-
----
-
-### ⌨️ Pintasan Keyboard (Shortcuts)
-
-| Pintasan Keyboard | Fungsi |
-| :--- | :--- |
-| `Ctrl + K` | Membuka menu pop-up aksi cepat / New Session & pencarian |
-| `Ctrl + S` | Menyimpan file yang sedang diedit di Code Editor |
-| `Ctrl + L` | Membersihkan layar terminal aktif |
-| `Tab` | Indentasi dua spasi di editor atau autocompletion di terminal |
-| `Klik Kanan` (File/Folder) | Menampilkan menu konteks berkas (Terminal, Editor, Rename, Move, Delete) |
-| `Klik Kanan` (Area Kosong) | Menampilkan menu direktori (New File, New Folder, Open Terminal, Refresh, Toggle Hidden) |
-| `Klik Kanan` (Terminal) | Menampilkan menu terminal desktop (Copy, Paste, Select All, Clear, Storage, dll.) |
-| `Klik Kanan` (Editor) | Menampilkan menu editor desktop (Cut, Copy, Paste, Select All, Save, Send Path, dll.) |
-
----
-
-<br>
 
 ## 🇬🇧 English
 
@@ -177,7 +33,7 @@ The project is built on three core pillars:
 
 #### 1. Dual Storage File Manager
 * **Termux Storage (`~`)**: Quick access to the internal Termux environment (`$HOME` / `/data/data/com.termux/files/home`) for all your coding projects, git repos, scripts, and Linux dotfiles.
-* **Android Storage (`/sdcard`)**: Full access to Android shared internal storage (`/storage/emulated/0`) to manage files in *Download*, *Documents*, *Pictures*, *DCIM*, or external folders.
+* **Android Storage (`/sdcard`)**: Full access to Android shared internal storage (`/storage/emulated/0`) to manage files in *Download*, *Documents*, *Pictures*, *DCIM*, or external project folders.
 * **Pill Storage Switcher**: Convenient pill toggle buttons on the explorer toolbar to instantly jump between Termux Storage and Android Storage.
 * **Smart Breadcrumbs**: Clean, intuitive path segments anchored at `📦 Termux Storage` and `📱 Android Storage` with guardrails preventing navigation outside allowed sandbox roots (eliminating *403 Forbidden* errors).
 * **Two View Modes**:
@@ -303,6 +159,139 @@ To restart or stop the production server:
 
 ---
 
+<br>
+
+## 🇮🇩 Bahasa Indonesia
+
+### 🌟 Gambaran Umum & Fungsi
+**Termux Workspace** mengubah perangkat Android Anda menjadi stasiun kerja pemrograman (coding workstation) yang lengkap dan mandiri. Dirancang khusus untuk lingkungan Termux tanpa memerlukan root, aplikasi ini menghadirkan pengalaman layaknya desktop IDE (seperti VS Code / macOS Finder) langsung melalui browser web atau aplikasi pendamping Android.
+
+Proyek ini terdiri dari 3 pilar utama:
+1. **Backend Server (Python / FastAPI / Uvicorn)**: Mengelola sesi PTY shell, interaksi `tmux`, autentikasi token, serta API sistem berkas (Filesystem REST API).
+2. **Web Frontend (Vanilla JS, CSS & HTML)**: Antarmuka modern bertema gelap *macOS Frosted Glass*, Code Editor CodeMirror 6, Dual Storage File Manager, dan terminal xterm.js responsif.
+3. **Aplikasi Android Add-on (Kotlin)**: Wrapper WebView *fullscreen immersive* yang secara otomatis memicu server Termux di latar belakang menggunakan Termux `RUN_COMMAND` Service.
+
+---
+
+### 🚀 Fitur-Fitur Utama
+
+#### 1. Dual Storage File Manager
+* **Termux Storage (`~`)**: Akses cepat ke direktori home Termux (`$HOME` / `/data/data/com.termux/files/home`) untuk seluruh proyek, repositori git, script, dan konfigurasi Linux Anda.
+* **Android Storage (`/sdcard`)**: Akses penuh ke penyimpanan bersama internal Android (`/storage/emulated/0`) untuk mengelola file di folder *Download*, *Documents*, *Pictures*, *DCIM*, atau project eksternal.
+* **Pill Storage Switcher**: Tombol pengalih cepat berbentuk pill di toolbar explorer untuk berpindah antara Termux Storage dan Android Storage secara instan.
+* **Smart Breadcrumbs**: Tampilan hierarki folder yang bersih berakar dari `📦 Termux Storage` dan `📱 Android Storage` dengan proteksi bawaan agar navigasi tidak melompat ke root sistem yang terlarang (mencegah error *403 Forbidden*).
+* **Dua Mode Tampilan**:
+  * **List Mode**: Tampilan tabel daftar tradisional dengan ikon tipe file, nama file, badge bahasa, dan menu aksi.
+  * **Grid Mode**: Tampilan kartu ikon modern ala *macOS Finder* yang memudahkan visualisasi file dan folder.
+* **Toggle File Tersembunyi (Dotfiles)**: File tersembunyi (diawali titik `.`) disembunyikan secara default untuk menjaga kebersihan visual, dan dapat ditampilkan/disembunyikan kapan saja melalui tombol mata di toolbar.
+* **Filter Pencarian Cepat**: Filter pencarian *real-time* yang menyaring file dan folder di direktori aktif saat Anda mengetik.
+* **Operasi Berkas Lengkap**:
+  * Buat File Baru & Buat Folder Baru.
+  * Ganti Nama (Rename) file/folder.
+  * Pindahkan (Move) file/folder ke direktori lain.
+  * Hapus (Delete) file/folder dengan dialog konfirmasi aman.
+  * Buka di Terminal (`Open in Terminal`) atau Buka di Editor (`Open in Editor`).
+* **Desktop Context Menu (Klik Kanan)**:
+  * Klik kanan pada file atau folder menampilkan menu opsi lengkap.
+  * Klik kanan pada area kosong explorer menampilkan menu untuk membuat file/folder baru, membuka terminal di lokasi tersebut, menyegarkan tampilan (refresh), atau mengalihkan file tersembunyi.
+
+#### 2. Code Editor Modern (CodeMirror 6)
+* **Full-View Editor**: Mode penyuntingan fokus layar penuh tanpa distraksi *split screen*.
+* **Syntax Highlighting Lengkap**: Mendukung JavaScript, TypeScript, Python, HTML, CSS, JSON, Markdown, Shell script (`.sh`, `.bash`, `.zsh`), YAML, TOML, SQL, dan banyak lagi.
+* **One Dark Theme**: Tema gelap kontras tinggi yang nyaman di mata untuk sesi coding jangka panjang.
+* **Sistem Tab Editor**: Buka banyak file sekaligus dalam tab terpisah, dilengkapi indikator perubahan belum disimpan (*dirty indicator* `●`) dan tombol tutup tab.
+* **Desktop Right-Click Context Menu**: Menu klik kanan desktop khusus di area editor dengan opsi:
+  * **Potong (Cut)** & **Salin (Copy)** seleksi teks.
+  * **Tempel (Paste)** teks dari clipboard.
+  * **Pilih Semua (Select All)** teks dalam dokumen.
+  * **Simpan File (Save)** (`Ctrl + S`).
+  * **Kirim Path ke Terminal**: Mengetikkan path file yang sedang aktif ke terminal yang sedang berjalan secara instan.
+  * **Tutup File**.
+* **Status Bar Informatif**: Menampilkan posisi kursor (Baris/Kolom - Ln/Col), jumlah total karakter, encoding UTF-8, serta format bahasa file yang aktif.
+
+#### 3. Terminal Multi-Sesi (xterm.js & PTY/tmux)
+* **Manajemen Multi-Sesi**: Jalankan banyak sesi terminal independen sekaligus dengan tab navigasi.
+* **Integrasi Native tmux & PTY**: Terminal terhubung langsung ke shell Termux asli melalui WebSocket dan `pty.fork`, memastikan kompatibilitas penuh dengan tool CLI (vim, nano, htop, git, python, dll.).
+* **Desktop Terminal Context Menu**: Klik kanan pada terminal menampilkan menu desktop (Salin seleksi, Tempel dari clipboard, Pilih semua teks, Bersihkan layar / Clear, Sesi baru, Buka Termux Storage, dan Buka Android Storage).
+* **Bebas Konflik Menu**: Seluruh menu klik kanan default browser dan popup mouse tmux dinonaktifkan secara bersih sehingga hanya menu desktop Termux Workspace yang muncul.
+* **Mobile Extra Keys Bar**: Tombol bantu khusus keyboard mobile di bagian bawah (Esc, Tab, Ctrl toggle, Alt toggle, Panah Kiri, Atas, Bawah, Kanan).
+
+#### 4. Keamanan & Performa Tinggi
+* **Isolasi Localhost**: Server hanya melakukan binding secara eksklusif ke IP loopback `127.0.0.1`.
+* **Autentikasi Token Aman**: Menggunakan token hex acak 64-karakter dengan verifikasi *constant-time* (`secrets.compare_digest`) guna mencegah serangan *timing attack*.
+* **Proteksi WebSocket Origin**: Menolak koneksi WebSocket dari luar origin terpercaya (`http://127.0.0.1:24817`).
+* **Path Traversal Sandboxing**: Endpoint sistem berkas memvalidasi dan membatasi akses direktori hanya ke lingkungan Termux Home (`$HOME`) dan Android Shared Storage (`/storage/emulated/0`).
+* **100% Offline (Zero CDN)**: Seluruh pustaka JavaScript (xterm.js, FitAddon, CodeMirror 6) dan aset ikon SVG/PNG tersimpan secara lokal tanpa bergantung pada koneksi internet.
+
+---
+
+### 📦 Persyaratan Sistem
+1. Perangkat Android (Android 7.0+ disarankan).
+2. Aplikasi **Termux resmi dari F-Droid** (package `com.termux`).
+3. Akses penyimpanan bersama Android: Jalankan `termux-setup-storage` di Termux untuk memberikan izin akses ke `/storage/emulated/0`.
+4. Paket dasar: `python`, `tmux`, `nodejs`, dan `git`.
+
+---
+
+### 🛠️ Panduan Instalasi & Pengaturan
+
+Jalankan perintah berikut di dalam Termux:
+```bash
+# Clone repositori
+git clone https://github.com/0xposa/termux-workspace.git ~/termux-workspace
+cd ~/termux-workspace
+
+# Berikan izin eksekusi pada skrip
+chmod +x setup.sh start.sh preview.sh
+
+# Berikan izin akses penyimpanan Android jika belum
+termux-setup-storage
+
+# Jalankan skrip setup otomatis
+./setup.sh
+```
+
+---
+
+### 🚦 Cara Menjalankan
+
+#### Opsi 1: Mode Produksi (start.sh)
+Gunakan opsi ini untuk penggunaan harian dengan proteksi token keamanan:
+```bash
+./start.sh
+```
+Skrip akan menyalakan server latar belakang pada port `24817` dan mencetak tautan akses:
+```text
+http://127.0.0.1:24817/?token=<64_karakter_token_acak>
+```
+Buka tautan tersebut di browser web Android Anda (Chrome, Kiwi, Firefox, dsb.).
+
+Untuk merestart atau menghentikan server produksi:
+```bash
+./start.sh --restart
+```
+
+#### Opsi 2: Mode Live Development & Preview (preview.sh)
+```bash
+# Jalankan server preview pada port 8000
+./preview.sh
+
+# Atau nyalakan dan langsung buka di browser:
+./preview.sh --open
+```
+- URL Akses: `http://127.0.0.1:8000/` (Bebas token, auto-reload aktif).
+- Menghentikan server preview: `./preview.sh --stop`.
+
+#### Opsi 3: Menggunakan Aplikasi Android Add-on (APK)
+1. **Dapatkan APK**:
+   Setiap kali commit di-push ke branch `main`, GitHub Actions akan otomatis mengompilasi APK debug via workflow `.github/workflows/build-apk.yml`. Unduh file `app-debug.apk` dari tab **Actions** $\to$ **Artifacts** di repositori GitHub.
+2. **Berikan Izin RUN_COMMAND**:
+   Buka **Pengaturan Android** $\to$ **Aplikasi** $\to$ **Termux Workspace** $\to$ **Izin** $\to$ **Izin Tambahan** $\to$ Aktifkan **"Run commands in Termux environment"** (`com.termux.permission.RUN_COMMAND`).
+3. **Buka Aplikasi**:
+   Buka aplikasi dari app drawer perangkat Anda. Aplikasi akan otomatis menjalankan server di Termux dan membuka antarmuka workspace secara *fullscreen immersive*.
+
+---
+
 ### 📂 Project Structure
 
 ```text
@@ -320,10 +309,20 @@ termux-workspace/
 ├── setup.sh                 # Idempotent setup and installation script
 ├── start.sh                 # Production launcher (port 24817 with auth token)
 ├── preview.sh               # Development launcher (port 8000 with live reload)
+├── LICENSE                  # MIT License
 └── README.md                # Documentation
 ```
 
 ---
 
+### 👥 Contributors
+Contributions, issues, and feature requests are welcome!
+
+* **[0xposa](https://github.com/0xposa)** (Project Creator & Lead Maintainer)
+
+Feel free to check the [issues page](https://github.com/0xposa/termux-workspace/issues) or submit pull requests.
+
+---
+
 ### 📄 License
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LICENSE) file for details.
