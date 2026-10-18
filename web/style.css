@@ -747,6 +747,46 @@ body, html {
   color: #FFFFFF;
 }
 
+.explorer-storage-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 7px;
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+.storage-toggle-btn {
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: #9499A8;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.storage-toggle-btn:hover {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.storage-toggle-btn.active {
+  background: rgba(255, 255, 255, 0.13);
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
 .explorer-breadcrumbs {
   display: flex;
   align-items: center;

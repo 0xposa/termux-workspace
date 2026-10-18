@@ -34,7 +34,8 @@
         <div class="popup-title">New Session</div>
         <div id="popup-items" class="popup-items">
           <div class="popup-item" data-action="terminal">Terminal</div>
-          <div class="popup-item" data-action="explorer">Explorer</div>
+          <div class="popup-item" data-action="termux-storage">Termux Storage</div>
+          <div class="popup-item" data-action="android-storage">Android Storage</div>
         </div>
         <div class="popup-search-box">
           <input type="text" id="popup-search-input" placeholder="Search/shortcut..." autocomplete="off">
@@ -59,6 +60,22 @@
                 <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
               </svg>
             </button>
+            <!-- Storage Switcher Pills -->
+            <div class="explorer-storage-toggle">
+              <button id="btn-storage-termux" class="storage-toggle-btn active" title="Penyimpanan Termux (~)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 17l6-6-6-6M12 19h8"></path>
+                </svg>
+                <span>Termux Storage</span>
+              </button>
+              <button id="btn-storage-android" class="storage-toggle-btn" title="Penyimpanan Android (/sdcard)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                  <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                </svg>
+                <span>Android Storage</span>
+              </button>
+            </div>
             <div id="explorer-breadcrumbs" class="explorer-breadcrumbs"></div>
           </div>
           <div class="explorer-actions-group">
@@ -244,9 +261,18 @@
       </svg>
       Sesi Baru (New Session)
     </div>
-    <div class="context-menu-item" data-action="term-open-explorer">
-      <img src="/icons/folder.svg" class="context-menu-icon" width="15" height="15" alt="" />
-      Buka File Explorer
+    <div class="context-menu-item" data-action="term-open-termux-storage">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="context-menu-icon">
+        <path d="M4 17l6-6-6-6M12 19h8"></path>
+      </svg>
+      Buka Termux Storage
+    </div>
+    <div class="context-menu-item" data-action="term-open-android-storage">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="context-menu-icon">
+        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+        <line x1="12" y1="18" x2="12.01" y2="18"></line>
+      </svg>
+      Buka Android Storage
     </div>
   </div>
 

@@ -69,9 +69,21 @@
     return { text: 'File', cls: '' };
   }
 
-  // State & Elemen DOM Full Explorer
-  let isExplorerOpen = true;
-  let currentExplorerPath = null;
+  // Path Dasar Storage
+  const TERMUX_HOME_PATH = '/data/data/com.termux/files/home';
+  const ANDROID_STORAGE_PATH = '/storage/emulated/0';
+
+  function isAndroidStoragePath(path) {
+    if (!path) return false;
+    return path === ANDROID_STORAGE_PATH || path.startsWith(ANDROID_STORAGE_PATH + '/');
+  }
+
+  // State & Elemen DOM Full Explorer (Termux & Android Storage)
+  let isTermuxStorageOpen = true;
+  let isAndroidStorageOpen = true;
+  let currentTermuxPath = TERMUX_HOME_PATH;
+  let currentAndroidPath = ANDROID_STORAGE_PATH;
+  let currentExplorerPath = TERMUX_HOME_PATH;
   let currentExplorerItems = [];
   let showHiddenFiles = false; // Default: file tersembunyi disembunyikan
   let explorerViewMode = localStorage.getItem('termux_ws_view_mode') || 'list'; // 'list' | 'grid'
@@ -80,6 +92,8 @@
   const explorerList = document.getElementById('explorer-list');
   const explorerTableHeader = document.querySelector('.explorer-table-header');
   const explorerBreadcrumbs = document.getElementById('explorer-breadcrumbs');
+  const btnStorageTermux = document.getElementById('btn-storage-termux');
+  const btnStorageAndroid = document.getElementById('btn-storage-android');
   const explorerSearchInput = document.getElementById('explorer-search-input');
   const explorerBtnUp = document.getElementById('explorer-btn-up');
   const explorerBtnRefresh = document.getElementById('explorer-btn-refresh');
@@ -99,7 +113,7 @@
   const extraKeysBar = document.getElementById('extra-keys-bar');
 
   // State & Elemen DOM Code Editor (CodeMirror 6)
-  let activeTabType = 'explorer'; // 'explorer' | 'terminal' | 'editor'
+  let activeTabType = 'termux-storage'; // 'termux-storage' | 'android-storage' | 'terminal' | 'editor'
   let currentEditingPath = null;
   let cmEditorView = null;
   const openFiles = {}; // { [path]: { name, content, originalContent, isDirty } }
@@ -211,28 +225,27 @@
   function renderTabs() {
     tabsContainer.innerHTML = '';
 
-    // Tab Explorer (tampil pertama sebagai tab utama)
-    if (isExplorerOpen) {
+    // Tab Termux Storage
+    if (isTermuxStorageOpen) {
       const tab = document.createElement('div');
-      const isActive = activeTabType === 'explorer';
+      const isActive = activeTabType === 'termux-storage';
       tab.className = `tab ${isActive ? 'active' : ''}`;
 
-      const tabIcon = document.createElement('img');
+      const tabIcon = document.createElement('span');
       tabIcon.className = 'tab-icon';
-      tabIcon.src = '/icons/folder.svg';
-      tabIcon.width = 14;
-      tabIcon.height = 14;
-      tabIcon.alt = '';
+      tabIcon.style.display = 'inline-flex';
+      tabIcon.style.alignItems = 'center';
+      tabIcon.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6M12 19h8"></path></svg>`;
       tab.appendChild(tabIcon);
 
       const title = document.createElement('span');
       title.className = 'tab-title';
-      title.textContent = 'Explorer';
+      title.textContent = 'Termux Storage';
       tab.appendChild(title);
 
       const btnClose = document.createElement('span');
       btnClose.className = 'tab-close';
-      btnClose.title = 'Tutup explorer';
+      btnClose.title = 'Tutup Termux Storage';
       const closeIcon = document.createElement('img');
       closeIcon.className = 'tab-close-icon';
       closeIcon.src = '/icons/close.svg';
@@ -242,12 +255,53 @@
       btnClose.appendChild(closeIcon);
       btnClose.addEventListener('click', (e) => {
         e.stopPropagation();
-        closeExplorer();
+        closeTermuxStorage();
       });
       tab.appendChild(btnClose);
 
       tab.addEventListener('click', () => {
-        switchToExplorer();
+        switchToTermuxStorage();
+      });
+
+      tabsContainer.appendChild(tab);
+    }
+
+    // Tab Android Storage
+    if (isAndroidStorageOpen) {
+      const tab = document.createElement('div');
+      const isActive = activeTabType === 'android-storage';
+      tab.className = `tab ${isActive ? 'active' : ''}`;
+
+      const tabIcon = document.createElement('span');
+      tabIcon.className = 'tab-icon';
+      tabIcon.style.display = 'inline-flex';
+      tabIcon.style.alignItems = 'center';
+      tabIcon.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>`;
+      tab.appendChild(tabIcon);
+
+      const title = document.createElement('span');
+      title.className = 'tab-title';
+      title.textContent = 'Android Storage';
+      tab.appendChild(title);
+
+      const btnClose = document.createElement('span');
+      btnClose.className = 'tab-close';
+      btnClose.title = 'Tutup Android Storage';
+      const closeIcon = document.createElement('img');
+      closeIcon.className = 'tab-close-icon';
+      closeIcon.src = '/icons/close.svg';
+      closeIcon.width = 10;
+      closeIcon.height = 10;
+      closeIcon.alt = '';
+      btnClose.appendChild(closeIcon);
+      btnClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeAndroidStorage();
+      });
+      tab.appendChild(btnClose);
+
+      tab.addEventListener('click', () => {
+        switchToAndroidStorage();
       });
 
       tabsContainer.appendChild(tab);
@@ -367,21 +421,18 @@
     mountTerminal(activeSessionId, terminalContainer);
   }
 
-  function openExplorer(targetPath = null) {
-    isExplorerOpen = true;
-    switchToExplorer();
-    loadExplorerPath(targetPath || currentExplorerPath);
-  }
-
-  function switchToExplorer() {
+  function switchToTermuxStorage(targetPath = null) {
+    isTermuxStorageOpen = true;
     hideAllContextMenus();
-    activeTabType = 'explorer';
+    activeTabType = 'termux-storage';
 
     terminalArea.classList.add('hidden');
     editorArea.classList.add('hidden');
     explorerArea.classList.remove('hidden');
     if (editorActionsBar) editorActionsBar.classList.add('hidden');
 
+    const path = targetPath || currentTermuxPath || TERMUX_HOME_PATH;
+    loadExplorerPath(path);
     renderTabs();
 
     setTimeout(() => {
@@ -392,18 +443,77 @@
     }, 50);
   }
 
-  function closeExplorer() {
-    isExplorerOpen = false;
-    if (activeTabType === 'explorer') {
-      const remainingPaths = Object.keys(openFiles);
-      if (remainingPaths.length > 0) {
-        switchToEditor(remainingPaths[remainingPaths.length - 1]);
-      } else if (activeSessionId) {
-        switchToSession(activeSessionId);
-      } else if (sessions.length > 0) {
-        switchToSession(sessions[0].id);
+  function switchToAndroidStorage(targetPath = null) {
+    isAndroidStorageOpen = true;
+    hideAllContextMenus();
+    activeTabType = 'android-storage';
+
+    terminalArea.classList.add('hidden');
+    editorArea.classList.add('hidden');
+    explorerArea.classList.remove('hidden');
+    if (editorActionsBar) editorActionsBar.classList.add('hidden');
+
+    const path = targetPath || currentAndroidPath || ANDROID_STORAGE_PATH;
+    loadExplorerPath(path);
+    renderTabs();
+
+    setTimeout(() => {
+      const activeTabEl = tabsContainer.querySelector('.tab.active');
+      if (activeTabEl) {
+        activeTabEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      }
+    }, 50);
+  }
+
+  function openExplorer(targetPath = null) {
+    if (targetPath) {
+      if (isAndroidStoragePath(targetPath)) {
+        switchToAndroidStorage(targetPath);
       } else {
-        renderTabs();
+        switchToTermuxStorage(targetPath);
+      }
+    } else {
+      if (activeTabType === 'android-storage') {
+        switchToAndroidStorage();
+      } else {
+        switchToTermuxStorage();
+      }
+    }
+  }
+
+  function fallbackToNextTab() {
+    const remainingPaths = Object.keys(openFiles);
+    if (remainingPaths.length > 0) {
+      switchToEditor(remainingPaths[remainingPaths.length - 1]);
+    } else if (activeSessionId) {
+      switchToSession(activeSessionId);
+    } else if (sessions.length > 0) {
+      switchToSession(sessions[0].id);
+    } else {
+      renderTabs();
+    }
+  }
+
+  function closeTermuxStorage() {
+    isTermuxStorageOpen = false;
+    if (activeTabType === 'termux-storage') {
+      if (isAndroidStorageOpen) {
+        switchToAndroidStorage();
+      } else {
+        fallbackToNextTab();
+      }
+    } else {
+      renderTabs();
+    }
+  }
+
+  function closeAndroidStorage() {
+    isAndroidStorageOpen = false;
+    if (activeTabType === 'android-storage') {
+      if (isTermuxStorageOpen) {
+        switchToTermuxStorage();
+      } else {
+        fallbackToNextTab();
       }
     } else {
       renderTabs();
@@ -610,8 +720,10 @@
       const remainingPaths = Object.keys(openFiles);
       if (remainingPaths.length > 0) {
         switchToEditor(remainingPaths[remainingPaths.length - 1]);
-      } else if (isExplorerOpen) {
-        switchToExplorer();
+      } else if (isTermuxStorageOpen) {
+        switchToTermuxStorage();
+      } else if (isAndroidStorageOpen) {
+        switchToAndroidStorage();
       } else {
         currentEditingPath = null;
         if (activeSessionId) {
@@ -902,12 +1014,15 @@
   // Aksi Popup
   const popupActions = [
     { id: 'terminal', name: 'Terminal', action: () => { createNewSession(); togglePopupMenu(false); } },
-    { id: 'explorer', name: 'Explorer', action: () => { openExplorer(); togglePopupMenu(false); } },
+    { id: 'termux-storage', name: 'Termux Storage', action: () => { switchToTermuxStorage(); togglePopupMenu(false); } },
+    { id: 'android-storage', name: 'Android Storage', action: () => { switchToAndroidStorage(); togglePopupMenu(false); } },
     { id: 'close', name: 'Close Tab', action: () => {
       if (activeTabType === 'editor' && currentEditingPath) {
         closeFile(currentEditingPath);
-      } else if (activeTabType === 'explorer') {
-        closeExplorer();
+      } else if (activeTabType === 'termux-storage') {
+        closeTermuxStorage();
+      } else if (activeTabType === 'android-storage') {
+        closeAndroidStorage();
       } else if (activeSessionId) {
         closeSession(activeSessionId);
       }
@@ -922,8 +1037,11 @@
       if (!item) return;
       e.stopPropagation();
       const actionType = item.dataset.action;
-      if (actionType === 'explorer') {
-        openExplorer();
+      if (actionType === 'termux-storage' || actionType === 'explorer') {
+        switchToTermuxStorage();
+        togglePopupMenu(false);
+      } else if (actionType === 'android-storage') {
+        switchToAndroidStorage();
         togglePopupMenu(false);
       } else if (actionType === 'terminal') {
         createNewSession();
@@ -931,8 +1049,10 @@
       } else if (actionType === 'close') {
         if (activeTabType === 'editor' && currentEditingPath) {
           closeFile(currentEditingPath);
-        } else if (activeTabType === 'explorer') {
-          closeExplorer();
+        } else if (activeTabType === 'termux-storage') {
+          closeTermuxStorage();
+        } else if (activeTabType === 'android-storage') {
+          closeAndroidStorage();
         } else if (activeSessionId) {
           closeSession(activeSessionId);
         }
@@ -1380,6 +1500,10 @@
         inst.term.focus();
       } else if (action === 'term-new-session') {
         await createNewSession();
+      } else if (action === 'term-open-termux-storage') {
+        switchToTermuxStorage();
+      } else if (action === 'term-open-android-storage') {
+        switchToAndroidStorage();
       } else if (action === 'term-open-explorer') {
         openExplorer();
       }
@@ -1913,7 +2037,19 @@
       }
       if (resolvedPath) {
         currentExplorerPath = resolvedPath;
+        if (isAndroidStoragePath(resolvedPath)) {
+          currentAndroidPath = resolvedPath;
+          if (activeTabType === 'termux-storage') {
+            activeTabType = 'android-storage';
+          }
+        } else {
+          currentTermuxPath = resolvedPath;
+          if (activeTabType === 'android-storage') {
+            activeTabType = 'termux-storage';
+          }
+        }
       }
+      renderTabs();
       renderExplorerUI();
     } catch (err) {
       console.error('Gagal memuat explorer:', err);
@@ -1925,34 +2061,75 @@
     explorerBreadcrumbs.innerHTML = '';
     if (!currentExplorerPath) return;
 
-    const parts = currentExplorerPath.split('/').filter(Boolean);
-    let accum = '';
+    const isAndroid = isAndroidStoragePath(currentExplorerPath);
+    const rootPath = isAndroid ? ANDROID_STORAGE_PATH : TERMUX_HOME_PATH;
+    const rootLabel = isAndroid ? '📱 Android Storage' : '📦 Termux Storage';
 
-    // Root crumb
-    const rootCrumb = document.createElement('span');
-    rootCrumb.className = `breadcrumb-segment ${parts.length === 0 ? 'current' : ''}`;
-    rootCrumb.textContent = '/';
-    rootCrumb.addEventListener('click', () => loadExplorerPath('/'));
-    explorerBreadcrumbs.appendChild(rootCrumb);
+    if (currentExplorerPath === rootPath || currentExplorerPath.startsWith(rootPath + '/')) {
+      const relPath = currentExplorerPath.slice(rootPath.length);
+      const parts = relPath.split('/').filter(Boolean);
 
-    parts.forEach((part, index) => {
-      accum += '/' + part;
-      const targetPath = accum;
-      const isLast = index === parts.length - 1;
-
-      const sep = document.createElement('span');
-      sep.className = 'breadcrumb-sep';
-      sep.textContent = '/';
-      explorerBreadcrumbs.appendChild(sep);
-
-      const segment = document.createElement('span');
-      segment.className = `breadcrumb-segment ${isLast ? 'current' : ''}`;
-      segment.textContent = part;
-      if (!isLast) {
-        segment.addEventListener('click', () => loadExplorerPath(targetPath));
+      // Root crumb
+      const rootCrumb = document.createElement('span');
+      rootCrumb.className = `breadcrumb-segment ${parts.length === 0 ? 'current' : ''}`;
+      rootCrumb.textContent = rootLabel;
+      rootCrumb.title = rootPath;
+      if (parts.length > 0) {
+        rootCrumb.addEventListener('click', () => loadExplorerPath(rootPath));
       }
-      explorerBreadcrumbs.appendChild(segment);
-    });
+      explorerBreadcrumbs.appendChild(rootCrumb);
+
+      let accum = rootPath;
+      parts.forEach((part, index) => {
+        accum += '/' + part;
+        const targetPath = accum;
+        const isLast = index === parts.length - 1;
+
+        const sep = document.createElement('span');
+        sep.className = 'breadcrumb-sep';
+        sep.textContent = '/';
+        explorerBreadcrumbs.appendChild(sep);
+
+        const segment = document.createElement('span');
+        segment.className = `breadcrumb-segment ${isLast ? 'current' : ''}`;
+        segment.textContent = part;
+        if (!isLast) {
+          segment.addEventListener('click', () => loadExplorerPath(targetPath));
+        }
+        explorerBreadcrumbs.appendChild(segment);
+      });
+    } else {
+      const parts = currentExplorerPath.split('/').filter(Boolean);
+      let accum = '';
+
+      // Root crumb
+      const rootCrumb = document.createElement('span');
+      rootCrumb.className = `breadcrumb-segment ${parts.length === 0 ? 'current' : ''}`;
+      rootCrumb.textContent = '/';
+      if (parts.length > 0) {
+        rootCrumb.addEventListener('click', () => loadExplorerPath('/'));
+      }
+      explorerBreadcrumbs.appendChild(rootCrumb);
+
+      parts.forEach((part, index) => {
+        accum += '/' + part;
+        const targetPath = accum;
+        const isLast = index === parts.length - 1;
+
+        const sep = document.createElement('span');
+        sep.className = 'breadcrumb-sep';
+        sep.textContent = '/';
+        explorerBreadcrumbs.appendChild(sep);
+
+        const segment = document.createElement('span');
+        segment.className = `breadcrumb-segment ${isLast ? 'current' : ''}`;
+        segment.textContent = part;
+        if (!isLast) {
+          segment.addEventListener('click', () => loadExplorerPath(targetPath));
+        }
+        explorerBreadcrumbs.appendChild(segment);
+      });
+    }
 
     setTimeout(() => {
       if (explorerBreadcrumbs) {
@@ -1962,6 +2139,15 @@
   }
 
   function updateToolbarButtonsUI() {
+    // Tombol Switcher Storage (Termux Storage vs Android Storage)
+    const isAndroid = isAndroidStoragePath(currentExplorerPath);
+    if (btnStorageTermux) {
+      btnStorageTermux.classList.toggle('active', !isAndroid);
+    }
+    if (btnStorageAndroid) {
+      btnStorageAndroid.classList.toggle('active', isAndroid);
+    }
+
     // Tombol Toggle File Tersembunyi
     if (explorerBtnToggleHidden) {
       explorerBtnToggleHidden.classList.toggle('active', showHiddenFiles);
@@ -2224,8 +2410,29 @@
       explorerItemCount.textContent = countText;
     }
     if (explorerCurrentPathDisplay) {
-      explorerCurrentPathDisplay.textContent = currentExplorerPath || '~';
+      if (isAndroidStoragePath(currentExplorerPath)) {
+        const rel = currentExplorerPath.slice(ANDROID_STORAGE_PATH.length);
+        explorerCurrentPathDisplay.textContent = `/sdcard${rel || ''}`;
+      } else if (currentExplorerPath.startsWith(TERMUX_HOME_PATH)) {
+        const rel = currentExplorerPath.slice(TERMUX_HOME_PATH.length);
+        explorerCurrentPathDisplay.textContent = `~${rel || ''}`;
+      } else {
+        explorerCurrentPathDisplay.textContent = currentExplorerPath || '~';
+      }
     }
+  }
+
+  // Storage Switcher Toolbar Buttons (Termux Storage vs Android Storage)
+  if (btnStorageTermux) {
+    btnStorageTermux.addEventListener('click', () => {
+      switchToTermuxStorage();
+    });
+  }
+
+  if (btnStorageAndroid) {
+    btnStorageAndroid.addEventListener('click', () => {
+      switchToAndroidStorage();
+    });
   }
 
   // Toolbar Actions Event Listeners
@@ -2255,6 +2462,11 @@
   if (explorerBtnUp) {
     explorerBtnUp.addEventListener('click', () => {
       if (!currentExplorerPath || currentExplorerPath === '/') return;
+      if (isAndroidStoragePath(currentExplorerPath)) {
+        if (currentExplorerPath === ANDROID_STORAGE_PATH) return;
+      } else {
+        if (currentExplorerPath === TERMUX_HOME_PATH) return;
+      }
       const lastSlash = currentExplorerPath.lastIndexOf('/');
       const parentPath = lastSlash <= 0 ? '/' : currentExplorerPath.substring(0, lastSlash);
       loadExplorerPath(parentPath);
