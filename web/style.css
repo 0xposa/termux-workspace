@@ -13,9 +13,9 @@ body, html {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #14161C;
+  background-color: #16181F;
   color: #E6E8EC;
-  font-family: monospace, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 14px;
 }
 
@@ -35,18 +35,20 @@ body, html {
   height: 100%;
   overflow: hidden;
   position: relative;
-  background-color: #14161C;
+  background-color: #14161D;
 }
 
-/* Bar Tab */
+/* Bar Tab - macOS Frosted Glass */
 .tab-bar {
-  height: 38px;
-  background-color: #1E222B;
-  border-bottom: 1px solid #2B303B;
+  height: 40px;
+  background: rgba(26, 29, 36, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 0 8px;
+  padding: 0 10px;
   gap: 6px;
   user-select: none;
   z-index: 5;
@@ -56,7 +58,7 @@ body, html {
 .tabs-container {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   overflow-x: auto;
   flex: 0 1 auto;
   min-width: 0;
@@ -84,30 +86,31 @@ body, html {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
-  background-color: #1E222B;
-  color: #8E95A5;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
+  padding: 4px 10px;
+  background-color: rgba(255, 255, 255, 0.03);
+  color: #9CA3AF;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
   white-space: nowrap;
-  height: 32px;
-  margin-top: 6px;
+  height: 28px;
   flex-shrink: 0;
+  transition: all 0.15s ease;
 }
 
 .tab:hover {
-  background-color: #252A36;
+  background-color: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.08);
   color: #E6E8EC;
 }
 
 .tab.active {
-  background-color: #14161C;
-  color: #E6E8EC;
-  border-color: #2B303B;
-  font-weight: bold;
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  font-weight: 500;
 }
 
 .tab-icon {
@@ -126,6 +129,7 @@ body, html {
   border-radius: 50%;
   cursor: pointer;
   margin-left: 2px;
+  transition: background-color 0.15s ease;
 }
 
 .tab-close-icon {
@@ -137,22 +141,22 @@ body, html {
 }
 
 .tab-close:hover {
-  background-color: #2B303B;
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 .tab-close:hover .tab-close-icon {
   opacity: 1;
 }
 
-/* Tombol Plus Minimalis & Modern */
+/* Tombol Plus - Polos Abu-Abu Solid Tanpa Gradasi */
 .btn-add {
   flex-shrink: 0;
   width: 26px;
   height: 26px;
-  border: 1px solid #333842;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 6px;
-  background-color: #222630;
-  color: #E6E8EC;
+  background-color: #323640; /* Polos abu-abu solid */
+  color: #D1D5DB;
   font-weight: 500;
   font-size: 16px;
   line-height: 24px;
@@ -165,30 +169,32 @@ body, html {
 }
 
 .btn-add:hover {
-  background-color: #2D3340;
-  border-color: #4A5263;
+  background-color: #3F4552; /* Abu-abu solid lebih terang */
+  border-color: rgba(255, 255, 255, 0.22);
   color: #FFFFFF;
 }
 
 .btn-add:active {
-  background-color: #3B82F6;
-  border-color: #3B82F6;
-  color: #FFFFFF;
+  background-color: #262931; /* Abu-abu solid ditekan */
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #E5E7EB;
 }
 
-/* Menu Popup */
+/* Menu Popup - macOS Frosted Glass */
 .popup-menu {
   position: absolute;
   top: 44px;
   right: 12px;
-  width: 240px;
-  background-color: #1E222B;
-  border: 1px solid #2B303B;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  width: 230px;
+  background: rgba(28, 32, 42, 0.82);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
-  padding: 8px 0;
+  padding: 6px 0;
   z-index: 100;
   user-select: none;
 }
@@ -199,22 +205,24 @@ body, html {
 
 .popup-title {
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #8E95A5;
-  font-weight: bold;
+  color: #9499A8;
+  font-weight: 600;
 }
 
 .popup-items {
   display: flex;
   flex-direction: column;
+  padding: 2px 4px;
 }
 
 .popup-item {
-  padding: 8px 14px;
+  padding: 7px 10px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   color: #E6E8EC;
   display: flex;
   align-items: center;
@@ -223,46 +231,48 @@ body, html {
 }
 
 .popup-item:hover, .popup-item.selected {
-  background-color: #2B303B;
-  color: #60A5FA;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
 }
 
 .popup-separator {
   height: 1px;
-  background-color: #2B303B;
-  margin: 4px 0;
+  background-color: rgba(255, 255, 255, 0.08);
+  margin: 4px 6px;
 }
 
 .popup-search-box {
   display: flex;
   align-items: center;
-  padding: 8px 12px 4px 12px;
-  border-top: 1px solid #2B303B;
+  padding: 8px 10px 4px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   margin-top: 4px;
   gap: 8px;
 }
 
 .popup-search-box input {
   flex: 1;
-  background-color: #14161C;
-  border: 1px solid #2B303B;
-  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
   color: #E6E8EC;
-  padding: 6px 8px;
+  padding: 5px 8px;
   font-family: inherit;
   font-size: 12px;
   outline: none;
+  transition: border-color 0.15s ease;
 }
 
 .popup-search-box input:focus {
-  border-color: #3B82F6;
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .shortcut-badge {
   font-size: 10px;
-  background-color: #2B303B;
-  color: #8E95A5;
-  padding: 3px 6px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #9499A8;
+  padding: 2px 6px;
   border-radius: 4px;
   white-space: nowrap;
 }
@@ -291,44 +301,52 @@ body, html {
   padding: 4px;
 }
 
-/* Extra Keys Bar */
+/* Extra Keys Bar - macOS Glass Dock Style */
 .extra-keys-bar {
   height: 42px;
-  background-color: #1E222B;
-  border-top: 1px solid #2B303B;
+  background: rgba(24, 27, 34, 0.78);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 4px;
-  gap: 4px;
+  padding: 0 6px;
+  gap: 5px;
   user-select: none;
   z-index: 5;
 }
 
 .key-btn {
   flex: 1;
-  height: 32px;
-  background-color: #14161C;
-  border: 1px solid #2B303B;
-  border-radius: 4px;
+  height: 30px;
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
   color: #E6E8EC;
-  font-family: inherit;
+  font-family: monospace, ui-monospace, SFMono-Regular, monospace;
   font-size: 13px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.key-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
 }
 
 .key-btn:active {
-  background-color: #2B303B;
+  background-color: rgba(255, 255, 255, 0.16);
 }
 
 .key-btn.toggle-active {
-  background-color: #3B82F6;
+  background-color: #2563EB;
   color: #FFFFFF;
   font-weight: bold;
-  border-color: #3B82F6;
+  border-color: #2563EB;
 }
 
 /* Area Code Editor Full View */
@@ -349,26 +367,26 @@ body, html {
 }
 
 .editor-btn {
-  background-color: #14161C;
-  border: 1px solid #2B303B;
-  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 6px;
   color: #E6E8EC;
-  padding: 4px 8px;
+  padding: 4px 10px;
   font-family: inherit;
   font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
-  height: 26px;
+  gap: 6px;
+  height: 28px;
   white-space: nowrap;
   transition: all 0.15s ease;
 }
 
 .editor-btn:hover {
-  background-color: #252A36;
-  border-color: #3B82F6;
-  color: #60A5FA;
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
 }
 
 .editor-btn-icon {
@@ -454,41 +472,18 @@ body, html {
   }
 }
 
-.tree-dots {
-  margin-left: auto;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  cursor: pointer;
-  opacity: 0.6;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-}
-
-.tree-dots-img {
-  width: 14px;
-  height: 14px;
-  display: block;
-}
-
-.tree-row:hover .tree-dots, .tree-dots:hover {
-  opacity: 1;
-  background-color: #2B303B;
-}
-
-/* Context Menu Explorer (Titik Tiga) */
+/* Context Menu Explorer - macOS Frosted Glass */
 .explorer-context-menu {
   position: fixed;
-  background-color: #1E222B;
-  border: 1px solid #2B303B;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-  padding: 6px 0;
+  background: rgba(28, 32, 42, 0.85);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  padding: 4px;
   z-index: 1000;
-  min-width: 170px;
+  min-width: 175px;
   user-select: none;
 }
 
@@ -497,18 +492,20 @@ body, html {
 }
 
 .context-menu-item {
-  padding: 8px 14px;
+  padding: 7px 10px;
+  border-radius: 6px;
   font-size: 13px;
   color: #E6E8EC;
   display: flex;
   align-items: center;
   gap: 10px;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .context-menu-item:hover:not(.disabled) {
-  background-color: #252A36;
-  color: #60A5FA;
+  background-color: rgba(255, 255, 255, 0.09);
+  color: #FFFFFF;
 }
 
 .context-menu-item.disabled {
@@ -517,14 +514,14 @@ body, html {
 }
 
 .context-menu-item.danger:hover:not(.disabled) {
-  background-color: rgba(255, 107, 107, 0.15);
-  color: #FF6B6B;
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #F87171;
 }
 
 .context-menu-separator {
   height: 1px;
-  background-color: #2B303B;
-  margin: 4px 0;
+  background-color: rgba(255, 255, 255, 0.08);
+  margin: 4px 6px;
 }
 
 .context-menu-icon {
@@ -533,14 +530,16 @@ body, html {
   text-align: center;
 }
 
-/* Modal Dialog Interaktif Filesystem */
+/* Modal Dialog Interaktif Filesystem - macOS Glass Sheet */
 .fs-modal {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(10, 12, 16, 0.7);
+  background-color: rgba(10, 12, 16, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -552,47 +551,50 @@ body, html {
 }
 
 .fs-modal-box {
-  background-color: #1E222B;
-  border: 1px solid #2B303B;
-  border-radius: 8px;
+  background: rgba(30, 34, 44, 0.88);
+  backdrop-filter: blur(30px) saturate(190%);
+  -webkit-backdrop-filter: blur(30px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
   width: 90%;
   max-width: 420px;
-  padding: 18px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  padding: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .fs-modal-title {
   font-size: 15px;
-  font-weight: bold;
-  color: #E6E8EC;
-  margin-bottom: 12px;
+  font-weight: 600;
+  color: #FFFFFF;
+  margin-bottom: 10px;
 }
 
 .fs-modal-message {
   font-size: 13px;
-  color: #8E95A5;
-  margin-bottom: 12px;
-  line-height: 1.4;
+  color: #9499A8;
+  margin-bottom: 14px;
+  line-height: 1.45;
   word-break: break-all;
 }
 
 .fs-modal-input {
   width: 100%;
   box-sizing: border-box;
-  background-color: #14161C;
-  border: 1px solid #2B303B;
-  border-radius: 4px;
-  color: #E6E8EC;
+  background-color: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #FFFFFF;
   font-family: inherit;
   font-size: 14px;
   padding: 8px 12px;
   outline: none;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  transition: border-color 0.15s ease;
 }
 
 .fs-modal-input:focus {
-  border-color: #3B82F6;
-  box-shadow: 0 0 0 1px #3B82F6;
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 .fs-modal-actions {
@@ -602,28 +604,31 @@ body, html {
 }
 
 .fs-modal-btn {
-  padding: 6px 14px;
-  border-radius: 4px;
+  padding: 7px 16px;
+  border-radius: 6px;
   font-family: inherit;
   font-size: 13px;
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
   transition: all 0.15s ease;
 }
 
 .fs-modal-btn.cancel {
-  background-color: #2B303B;
+  background-color: #323640; /* Polos abu-abu solid */
+  border-color: rgba(255, 255, 255, 0.1);
   color: #E6E8EC;
 }
 
 .fs-modal-btn.cancel:hover {
-  background-color: #383E4C;
+  background-color: #3F4552;
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
 }
 
 .fs-modal-btn.confirm {
   background-color: #2563EB;
   color: #FFFFFF;
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .fs-modal-btn.confirm:hover {
@@ -651,7 +656,7 @@ body, html {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background-color: #14161C;
+  background-color: #14161D;
   position: relative;
 }
 
@@ -661,8 +666,10 @@ body, html {
 
 .explorer-toolbar {
   height: 44px;
-  background-color: #1A1D24;
-  border-bottom: 1px solid #2B303B;
+  background: rgba(26, 29, 36, 0.75);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -681,8 +688,8 @@ body, html {
 }
 
 .explorer-tool-btn {
-  background-color: #222630;
-  border: 1px solid #2B303B;
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 6px;
   color: #E6E8EC;
   width: 28px;
@@ -696,8 +703,8 @@ body, html {
 }
 
 .explorer-tool-btn:hover {
-  background-color: #2B303B;
-  border-color: #3E4554;
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
   color: #FFFFFF;
 }
 
@@ -720,27 +727,27 @@ body, html {
   display: inline-flex;
   align-items: center;
   padding: 3px 6px;
-  border-radius: 4px;
-  color: #8E95A5;
+  border-radius: 5px;
+  color: #9499A8;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .breadcrumb-segment:hover {
-  background-color: #252A36;
-  color: #E6E8EC;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
 }
 
 .breadcrumb-segment.current {
-  color: #E6E8EC;
+  color: #FFFFFF;
   font-weight: 600;
   cursor: default;
 }
 
 .breadcrumb-sep {
-  color: #4A5263;
+  color: rgba(255, 255, 255, 0.25);
   font-size: 11px;
-  margin: 0 1px;
+  margin: 0 2px;
   user-select: none;
 }
 
@@ -756,8 +763,8 @@ body, html {
 }
 
 .explorer-search-input {
-  background-color: #14161C;
-  border: 1px solid #2B303B;
+  background-color: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 6px;
   color: #E6E8EC;
   padding: 5px 10px;
@@ -769,13 +776,13 @@ body, html {
 }
 
 .explorer-search-input:focus {
-  border-color: #3B82F6;
+  border-color: rgba(255, 255, 255, 0.25);
   width: 180px;
 }
 
 .explorer-action-btn {
-  background-color: #222630;
-  border: 1px solid #2B303B;
+  background-color: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 6px;
   color: #E6E8EC;
   padding: 4px 10px;
@@ -791,13 +798,13 @@ body, html {
 }
 
 .explorer-action-btn:hover {
-  background-color: #2B303B;
-  border-color: #3E4554;
-  color: #60A5FA;
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #FFFFFF;
 }
 
 .explorer-action-btn .btn-plus {
-  font-weight: bold;
+  font-weight: 500;
   font-size: 14px;
 }
 
@@ -818,7 +825,7 @@ body, html {
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: #8E95A5;
-  border-bottom: 1px solid #2B303B;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .explorer-list {
@@ -833,16 +840,16 @@ body, html {
   padding: 7px 12px;
   border-radius: 6px;
   cursor: pointer;
-  border-bottom: 1px solid rgba(43, 48, 59, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.025);
   transition: background-color 0.15s ease;
 }
 
 .explorer-row:hover {
-  background-color: #1E222B;
+  background-color: rgba(255, 255, 255, 0.06);
 }
 
 .explorer-row:active {
-  background-color: #252A36;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .col-name {
@@ -890,9 +897,9 @@ body, html {
   border-radius: 4px;
   font-size: 10px;
   font-weight: 600;
-  background-color: #222630;
+  background-color: rgba(255, 255, 255, 0.05);
   color: #8E95A5;
-  border: 1px solid #2B303B;
+  border: 1px solid rgba(255, 255, 255, 0.07);
   text-transform: uppercase;
 }
 
@@ -932,7 +939,7 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
   opacity: 0.6;
   transition: all 0.15s ease;
@@ -940,7 +947,7 @@ body, html {
 
 .explorer-row:hover .explorer-dots-btn, .explorer-dots-btn:hover {
   opacity: 1;
-  background-color: #2B303B;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .explorer-empty {
@@ -952,8 +959,10 @@ body, html {
 
 .explorer-footer {
   height: 28px;
-  background-color: #1A1D24;
-  border-top: 1px solid #2B303B;
+  background: rgba(26, 29, 36, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
