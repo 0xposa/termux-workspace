@@ -666,6 +666,24 @@
 
     term.open(termWrap);
 
+    // Hapus dan blokir pop up klik kanan lama bawaan browser / xterm
+    termWrap.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      if (isAnyContextMenuVisible()) {
+        hideAllContextMenus();
+      }
+    }, true);
+
+    if (term.textarea) {
+      term.textarea.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }, true);
+    }
+
     const instance = {
       term,
       fitAddon,
@@ -1314,18 +1332,15 @@
 
   // Listener Klik Kanan & Klik Kiri pada Terminal Container
   if (terminalContainer) {
-    // 1. Klik kanan pada terminal: tampilkan context menu desktop
+    // 1. Klik kanan pada terminal: hapus dan blokir pop up klik kanan lama bawaan browser / xterm
     terminalContainer.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      e.stopImmediatePropagation();
       if (isAnyContextMenuVisible()) {
         hideAllContextMenus();
-        return;
       }
-      const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
-      if (inst) inst.term.focus();
-      showTerminalContextMenu(e);
-    });
+    }, true);
 
     // 2. Klik kiri pada terminal: jika context menu terbuka, hanya bertindak menutupnya
     terminalContainer.addEventListener('click', (e) => {
@@ -1415,7 +1430,7 @@
     });
   }
 
-  // Cegah menu klik kanan default browser yang mengganggu (kecuali input, textarea, dan editor)
+  // Cegah menu klik kanan default browser yang mengganggu (kecuali input dan editor)
   document.addEventListener('contextmenu', (e) => {
     if (isAnyContextMenuVisible()) {
       e.preventDefault();
@@ -1423,11 +1438,17 @@
       hideAllContextMenus();
       return;
     }
-    const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.cm-editor');
+    const isTerminal = e.target.closest('#terminal-container') || e.target.closest('#terminal-area') || (e.target.classList && e.target.classList.contains('xterm-helper-textarea'));
+    if (isTerminal) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    const isInput = e.target.tagName === 'INPUT' || (e.target.tagName === 'TEXTAREA' && (!e.target.classList || !e.target.classList.contains('xterm-helper-textarea'))) || e.target.closest('.cm-editor');
     if (!isInput) {
       e.preventDefault();
     }
-  });
+  }, true);
 
   explorerContextMenu.addEventListener('click', async (e) => {
     const menuItem = e.target.closest('.context-menu-item');
