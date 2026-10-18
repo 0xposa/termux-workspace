@@ -65,6 +65,38 @@
             <div class="explorer-search-wrapper">
               <input type="text" id="explorer-search-input" class="explorer-search-input" placeholder="Filter file/folder..." autocomplete="off">
             </div>
+            <!-- Toggle Tampilan List / Grid (macOS Finder style) -->
+            <div class="explorer-view-toggle">
+              <button id="explorer-btn-view-list" class="explorer-view-btn active" title="Tampilan Daftar (List)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                </svg>
+              </button>
+              <button id="explorer-btn-view-grid" class="explorer-view-btn" title="Tampilan Kisi (Grid)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+              </button>
+            </div>
+            <!-- Tombol Sembunyikan/Tampilkan File Tersembunyi (Hidden files) -->
+            <button id="explorer-btn-toggle-hidden" class="explorer-tool-btn" title="Tampilkan File Tersembunyi (Titik)">
+              <svg id="explorer-icon-hidden-off" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+              <svg id="explorer-icon-hidden-on" class="hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
             <button id="explorer-btn-new-file" class="explorer-action-btn" title="Buat File Baru">
               <span class="btn-plus">+</span> File
             </button>

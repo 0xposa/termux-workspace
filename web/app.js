@@ -73,13 +73,21 @@
   let isExplorerOpen = true;
   let currentExplorerPath = null;
   let currentExplorerItems = [];
+  let showHiddenFiles = false; // Default: file tersembunyi disembunyikan
+  let explorerViewMode = localStorage.getItem('termux_ws_view_mode') || 'list'; // 'list' | 'grid'
 
   const explorerArea = document.getElementById('explorer-area');
   const explorerList = document.getElementById('explorer-list');
+  const explorerTableHeader = document.querySelector('.explorer-table-header');
   const explorerBreadcrumbs = document.getElementById('explorer-breadcrumbs');
   const explorerSearchInput = document.getElementById('explorer-search-input');
   const explorerBtnUp = document.getElementById('explorer-btn-up');
   const explorerBtnRefresh = document.getElementById('explorer-btn-refresh');
+  const explorerBtnToggleHidden = document.getElementById('explorer-btn-toggle-hidden');
+  const explorerIconHiddenOff = document.getElementById('explorer-icon-hidden-off');
+  const explorerIconHiddenOn = document.getElementById('explorer-icon-hidden-on');
+  const explorerBtnViewList = document.getElementById('explorer-btn-view-list');
+  const explorerBtnViewGrid = document.getElementById('explorer-btn-view-grid');
   const explorerBtnNewFile = document.getElementById('explorer-btn-new-file');
   const explorerBtnNewFolder = document.getElementById('explorer-btn-new-folder');
   const explorerBtnOpenTerminal = document.getElementById('explorer-btn-open-terminal');
@@ -1301,98 +1309,229 @@
     }, 20);
   }
 
+  function updateToolbarButtonsUI() {
+    // Tombol Toggle File Tersembunyi
+    if (explorerBtnToggleHidden) {
+      explorerBtnToggleHidden.classList.toggle('active', showHiddenFiles);
+      explorerBtnToggleHidden.title = showHiddenFiles
+        ? 'Sembunyikan File Tersembunyi (Titik)'
+        : 'Tampilkan File Tersembunyi (Titik)';
+      if (explorerIconHiddenOff && explorerIconHiddenOn) {
+        if (showHiddenFiles) {
+          explorerIconHiddenOff.classList.add('hidden');
+          explorerIconHiddenOn.classList.remove('hidden');
+        } else {
+          explorerIconHiddenOff.classList.remove('hidden');
+          explorerIconHiddenOn.classList.add('hidden');
+        }
+      }
+    }
+
+    // Tombol Switcher Mode Tampilan (List vs Grid)
+    if (explorerBtnViewList && explorerBtnViewGrid) {
+      if (explorerViewMode === 'grid') {
+        explorerBtnViewGrid.classList.add('active');
+        explorerBtnViewList.classList.remove('active');
+      } else {
+        explorerBtnViewList.classList.add('active');
+        explorerBtnViewGrid.classList.remove('active');
+      }
+    }
+  }
+
   function renderExplorerUI() {
     if (!explorerList) return;
 
     renderBreadcrumbs();
+    updateToolbarButtonsUI();
 
     const query = (explorerSearchInput ? explorerSearchInput.value : '').trim().toLowerCase();
+
+    // 1. Saring file/folder tersembunyi (diawali titik ".") secara default
+    let visibleItems = currentExplorerItems;
+    if (!showHiddenFiles) {
+      visibleItems = visibleItems.filter(item => !item.name.startsWith('.'));
+    }
+
+    // 2. Saring pencarian jika pengguna mengetik di filter input
     const filtered = query
-      ? currentExplorerItems.filter(item => item.name.toLowerCase().includes(query))
-      : currentExplorerItems;
+      ? visibleItems.filter(item => item.name.toLowerCase().includes(query))
+      : visibleItems;
 
     explorerList.innerHTML = '';
+
+    // Sesuaikan header tabel dan kontainer sesuai mode list / grid
+    if (explorerTableHeader) {
+      if (explorerViewMode === 'grid') {
+        explorerTableHeader.classList.add('hidden');
+        explorerList.className = 'explorer-list grid-mode';
+      } else {
+        explorerTableHeader.classList.remove('hidden');
+        explorerList.className = 'explorer-list list-mode';
+      }
+    }
 
     if (filtered.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'explorer-empty';
-      empty.textContent = query ? 'Tidak ada file atau folder yang cocok' : 'Folder ini kosong';
+      if (query) {
+        empty.textContent = 'Tidak ada file atau folder yang cocok dengan pencarian';
+      } else if (!showHiddenFiles && currentExplorerItems.length > 0) {
+        empty.innerHTML = `Semua item di folder ini adalah file tersembunyi (${currentExplorerItems.length} item).<br><span style="font-size:11px;opacity:0.8;display:inline-block;margin-top:6px;">Klik tombol mata di toolbar atas untuk menampilkannya.</span>`;
+      } else {
+        empty.textContent = 'Folder ini kosong';
+      }
       explorerList.appendChild(empty);
     } else {
-      filtered.forEach(item => {
-        const isDir = item.type === 'dir';
-        const row = document.createElement('div');
-        row.className = 'explorer-row';
+      if (explorerViewMode === 'grid') {
+        // --- Render Tampilan Grid (macOS Finder Icon Cards) ---
+        filtered.forEach(item => {
+          const isDir = item.type === 'dir';
+          const isHidden = item.name.startsWith('.');
+          const card = document.createElement('div');
+          card.className = `explorer-grid-card ${isHidden ? 'is-hidden-file' : ''}`;
+          card.title = item.name;
 
-        // Kolom Nama & Icon
-        const colName = document.createElement('div');
-        colName.className = 'col-name';
+          // Header Card Grid (Badge & Tombol Opsi Titik Tiga)
+          const cardHeader = document.createElement('div');
+          cardHeader.className = 'grid-card-header';
 
-        const iconImg = document.createElement('img');
-        iconImg.className = 'explorer-icon';
-        iconImg.src = getFileIcon(item.name, isDir);
-        iconImg.width = 18;
-        iconImg.height = 18;
-        iconImg.alt = '';
-        colName.appendChild(iconImg);
+          const badgeData = getFileBadge(item.name, isDir);
+          const badge = document.createElement('span');
+          badge.className = `explorer-type-badge ${badgeData.cls}`;
+          badge.textContent = badgeData.text;
+          cardHeader.appendChild(badge);
 
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'explorer-file-name';
-        nameSpan.textContent = item.name;
-        colName.appendChild(nameSpan);
+          const dotsBtn = document.createElement('span');
+          dotsBtn.className = 'explorer-dots-btn grid-dots-btn';
+          dotsBtn.title = 'Opsi';
+          const dotsImg = document.createElement('img');
+          dotsImg.src = '/icons/dots.svg';
+          dotsImg.width = 13;
+          dotsImg.height = 13;
+          dotsImg.alt = '';
+          dotsBtn.appendChild(dotsImg);
+          dotsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showContextMenu(e, item);
+          });
+          cardHeader.appendChild(dotsBtn);
+          card.appendChild(cardHeader);
 
-        row.appendChild(colName);
+          // Ikon Besar di Tengah Card
+          const iconWrapper = document.createElement('div');
+          iconWrapper.className = 'grid-icon-wrapper';
+          const iconImg = document.createElement('img');
+          iconImg.className = 'grid-icon';
+          iconImg.src = getFileIcon(item.name, isDir);
+          iconImg.alt = '';
+          iconWrapper.appendChild(iconImg);
+          card.appendChild(iconWrapper);
 
-        // Kolom Tipe Badge
-        const colType = document.createElement('div');
-        colType.className = 'col-type';
-        const badgeData = getFileBadge(item.name, isDir);
-        const badge = document.createElement('span');
-        badge.className = `explorer-type-badge ${badgeData.cls}`;
-        badge.textContent = badgeData.text;
-        colType.appendChild(badge);
-        row.appendChild(colType);
+          // Nama File / Folder di Bawah
+          const nameSpan = document.createElement('div');
+          nameSpan.className = 'grid-file-name';
+          nameSpan.textContent = item.name;
+          card.appendChild(nameSpan);
 
-        // Kolom Aksi Titik Tiga
-        const colActions = document.createElement('div');
-        colActions.className = 'col-actions';
-        const dotsBtn = document.createElement('span');
-        dotsBtn.className = 'explorer-dots-btn';
-        dotsBtn.title = 'Opsi';
-        const dotsImg = document.createElement('img');
-        dotsImg.src = '/icons/dots.svg';
-        dotsImg.width = 14;
-        dotsImg.height = 14;
-        dotsImg.alt = '';
-        dotsBtn.appendChild(dotsImg);
-        dotsBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          showContextMenu(e, item);
-        });
-        colActions.appendChild(dotsBtn);
-        row.appendChild(colActions);
-
-        // Klik row untuk membuka
-        row.addEventListener('click', (e) => {
-          if (isDir) {
-            loadExplorerPath(item.path);
-          } else {
-            if (isReadableTextFile(item.name)) {
-              openFileInEditor(item.path);
+          // Klik Card untuk Membuka
+          card.addEventListener('click', () => {
+            if (isDir) {
+              loadExplorerPath(item.path);
             } else {
-              alert(`File "${item.name}" adalah file biner/media dan tidak dapat diedit langsung.`);
+              if (isReadableTextFile(item.name)) {
+                openFileInEditor(item.path);
+              } else {
+                alert(`File "${item.name}" adalah file biner/media dan tidak dapat diedit langsung.`);
+              }
             }
-          }
-        });
+          });
 
-        explorerList.appendChild(row);
-      });
+          explorerList.appendChild(card);
+        });
+      } else {
+        // --- Render Tampilan List (Daftar Baris Tradisional) ---
+        filtered.forEach(item => {
+          const isDir = item.type === 'dir';
+          const isHidden = item.name.startsWith('.');
+          const row = document.createElement('div');
+          row.className = `explorer-row ${isHidden ? 'is-hidden-file' : ''}`;
+
+          // Kolom Nama & Icon
+          const colName = document.createElement('div');
+          colName.className = 'col-name';
+
+          const iconImg = document.createElement('img');
+          iconImg.className = 'explorer-icon';
+          iconImg.src = getFileIcon(item.name, isDir);
+          iconImg.width = 18;
+          iconImg.height = 18;
+          iconImg.alt = '';
+          colName.appendChild(iconImg);
+
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'explorer-file-name';
+          nameSpan.textContent = item.name;
+          colName.appendChild(nameSpan);
+
+          row.appendChild(colName);
+
+          // Kolom Tipe Badge
+          const colType = document.createElement('div');
+          colType.className = 'col-type';
+          const badgeData = getFileBadge(item.name, isDir);
+          const badge = document.createElement('span');
+          badge.className = `explorer-type-badge ${badgeData.cls}`;
+          badge.textContent = badgeData.text;
+          colType.appendChild(badge);
+          row.appendChild(colType);
+
+          // Kolom Aksi Titik Tiga
+          const colActions = document.createElement('div');
+          colActions.className = 'col-actions';
+          const dotsBtn = document.createElement('span');
+          dotsBtn.className = 'explorer-dots-btn';
+          dotsBtn.title = 'Opsi';
+          const dotsImg = document.createElement('img');
+          dotsImg.src = '/icons/dots.svg';
+          dotsImg.width = 14;
+          dotsImg.height = 14;
+          dotsImg.alt = '';
+          dotsBtn.appendChild(dotsImg);
+          dotsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showContextMenu(e, item);
+          });
+          colActions.appendChild(dotsBtn);
+          row.appendChild(colActions);
+
+          // Klik row untuk membuka
+          row.addEventListener('click', () => {
+            if (isDir) {
+              loadExplorerPath(item.path);
+            } else {
+              if (isReadableTextFile(item.name)) {
+                openFileInEditor(item.path);
+              } else {
+                alert(`File "${item.name}" adalah file biner/media dan tidak dapat diedit langsung.`);
+              }
+            }
+          });
+
+          explorerList.appendChild(row);
+        });
+      }
     }
 
-    const dirCount = currentExplorerItems.filter(i => i.type === 'dir').length;
-    const fileCount = currentExplorerItems.filter(i => i.type !== 'dir').length;
+    const dirCount = filtered.filter(i => i.type === 'dir').length;
+    const fileCount = filtered.filter(i => i.type !== 'dir').length;
+    const totalHidden = currentExplorerItems.filter(i => i.name.startsWith('.')).length;
     if (explorerItemCount) {
-      explorerItemCount.textContent = `${filtered.length} item (${dirCount} folder, ${fileCount} file)`;
+      let countText = `${filtered.length} item (${dirCount} folder, ${fileCount} file)`;
+      if (!showHiddenFiles && totalHidden > 0) {
+        countText += ` • ${totalHidden} tersembunyi`;
+      }
+      explorerItemCount.textContent = countText;
     }
     if (explorerCurrentPathDisplay) {
       explorerCurrentPathDisplay.textContent = currentExplorerPath || '~';
@@ -1400,6 +1539,29 @@
   }
 
   // Toolbar Actions Event Listeners
+  if (explorerBtnToggleHidden) {
+    explorerBtnToggleHidden.addEventListener('click', () => {
+      showHiddenFiles = !showHiddenFiles;
+      renderExplorerUI();
+    });
+  }
+
+  if (explorerBtnViewList) {
+    explorerBtnViewList.addEventListener('click', () => {
+      explorerViewMode = 'list';
+      localStorage.setItem('termux_ws_view_mode', 'list');
+      renderExplorerUI();
+    });
+  }
+
+  if (explorerBtnViewGrid) {
+    explorerBtnViewGrid.addEventListener('click', () => {
+      explorerViewMode = 'grid';
+      localStorage.setItem('termux_ws_view_mode', 'grid');
+      renderExplorerUI();
+    });
+  }
+
   if (explorerBtnUp) {
     explorerBtnUp.addEventListener('click', () => {
       if (!currentExplorerPath || currentExplorerPath === '/') return;
