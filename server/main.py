@@ -24,6 +24,17 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 DEFAULT_PORT = 24817
+DEFAULT_HOST = "127.0.0.1"
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+# Konfigurasi dari environment (agar diwariskan ke worker/reload process)
+SERVER_HOST = os.environ.get("WORKSPACE_HOST", DEFAULT_HOST)
+SERVER_PORT = int(os.environ.get("WORKSPACE_PORT", str(DEFAULT_PORT)))
+NO_AUTH = os.environ.get("WORKSPACE_NO_AUTH", "0") == "1"
+SERVER_TOKEN = os.environ.get("WORKSPACE_TOKEN", "")
 
 # Konfigurasi logging tanpa mencatat token
 class RedactingFilter(logging.Filter):
@@ -46,36 +57,36 @@ for handler in logging.root.handlers:
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Termux Workspace Server")
-    parser.add_argument("--token", required=True, help="Token autentikasi")
-    parser.add_argument("--port", type=int, default=DEFAULT_PORT, help="Port server")
-    return parser.parse_args()
+    parser.add_argument("--token", default=None, help="Token autentikasi")
+    parser.add_argument("--no-auth", action="store_true", help="Nonaktifkan autentikasi token (mode preview)")
+    parser.add_argument("--host", default=None, help="Host server (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=None, help="Port server")
+    parser.add_argument("--reload", action="store_true", help="Aktifkan live auto-reload")
+    parsed = parser.parse_args()
+    if not parsed.token and not parsed.no_auth and not NO_AUTH and not SERVER_TOKEN:
+        parser.error("Argumen --token atau flag --no-auth harus disertakan")
+    return parsed
 
-def check_port_available(port: int) -> None:
+def check_port_available(port: int, host: str = "127.0.0.1") -> None:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
-        sock.bind(("127.0.0.1", port))
+        sock.bind((host, port))
     except OSError:
-        sys.stderr.write(f"Port {port} sudah dipakai\n")
+        sys.stderr.write(f"Port {port} sudah dipakai di {host}\n")
         sys.exit(1)
     finally:
         sock.close()
-
-try:
-    os.setsid()
-except OSError:
-    pass
-
-args = parse_args()
-SERVER_TOKEN = args.token
-SERVER_PORT = args.port
-
-check_port_available(SERVER_PORT)
 
 app = FastAPI(title="Termux Workspace Server", docs_url=None, redoc_url=None, openapi_url=None)
 
 @app.middleware("http")
 async def token_auth_middleware(request: Request, call_next):
+    is_no_auth = NO_AUTH or (os.environ.get("WORKSPACE_NO_AUTH", "0") == "1")
+    if is_no_auth:
+        return await call_next(request)
+
+    active_token = SERVER_TOKEN or os.environ.get("WORKSPACE_TOKEN", "")
     # Ekstraksi token dari query parameter, header, atau cookie
     token = (
         request.query_params.get("token")
@@ -87,7 +98,7 @@ async def token_auth_middleware(request: Request, call_next):
         if auth_header.startswith("Bearer "):
             token = auth_header[7:].strip()
 
-    if not token or not secrets.compare_digest(token, SERVER_TOKEN):
+    if not token or not active_token or not secrets.compare_digest(token, active_token):
         return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
 
     response = await call_next(request)
@@ -95,7 +106,7 @@ async def token_auth_middleware(request: Request, call_next):
     if request.query_params.get("token"):
         response.set_cookie(
             key="ws_token",
-            value=SERVER_TOKEN,
+            value=active_token,
             httponly=True,
             samesite="strict",
             path="/"
@@ -202,7 +213,7 @@ async def delete_session(session_id: str):
     return {"ok": True}
 
 @app.get("/api/fs")
-async def list_filesystem(path: Optional[str] = None):
+async def list_filesystem(response: Response, path: Optional[str] = None):
     home_dir = os.path.realpath(os.environ.get("HOME", "/data/data/com.termux/files/home"))
     target = path if path else home_dir
     real_target = os.path.realpath(target)
@@ -222,6 +233,8 @@ async def list_filesystem(path: Optional[str] = None):
         raise HTTPException(status_code=404, detail="Direktori tidak ditemukan")
 
     try:
+        response.headers["X-Current-Path"] = real_target
+        response.headers["Access-Control-Expose-Headers"] = "X-Current-Path"
         entries = []
         with os.scandir(real_target) as it:
             for entry in it:
@@ -241,6 +254,35 @@ async def list_filesystem(path: Optional[str] = None):
     except PermissionError:
         raise HTTPException(status_code=403, detail="Izin baca direktori ditolak")
     except OSError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class MkdirRequest(BaseModel):
+    path: str
+
+@app.post("/api/fs/mkdir")
+async def create_directory(req: MkdirRequest):
+    home_dir = os.path.realpath(os.environ.get("HOME", "/data/data/com.termux/files/home"))
+    storage_dir = os.path.realpath("/storage/emulated/0")
+    real_target = os.path.realpath(req.path)
+
+    def is_subpath(p: str, parent: str) -> bool:
+        try:
+            return os.path.commonpath([p, parent]) == parent
+        except ValueError:
+            return False
+
+    if not (is_subpath(real_target, home_dir) or is_subpath(real_target, storage_dir)):
+        raise HTTPException(status_code=403, detail="Akses ditolak")
+
+    if os.path.exists(real_target):
+        raise HTTPException(status_code=400, detail="Folder sudah ada")
+
+    try:
+        os.makedirs(real_target, exist_ok=False)
+        return {"ok": True, "path": real_target}
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Izin membuat folder ditolak")
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 class FileSaveRequest(BaseModel):
@@ -435,21 +477,30 @@ async def delete_fs_item(path: str):
 
 @app.websocket("/ws/terminal")
 async def websocket_terminal(websocket: WebSocket, id: str = "", cols: int = 120, rows: int = 30):
-    # Validasi header Origin: hanya http://127.0.0.1:<port>
+    # Validasi header Origin: host yang dikonfigurasi, 127.0.0.1, atau localhost
+    current_port = int(os.environ.get("WORKSPACE_PORT", str(SERVER_PORT)))
+    current_host = os.environ.get("WORKSPACE_HOST", SERVER_HOST)
     origin = websocket.headers.get("origin")
-    expected_origin = f"http://127.0.0.1:{SERVER_PORT}"
-    if origin != expected_origin:
+    allowed_origins = {
+        f"http://{current_host}:{current_port}",
+        f"http://127.0.0.1:{current_port}",
+        f"http://localhost:{current_port}",
+    }
+    if origin not in allowed_origins:
         await websocket.close(code=1008)
         return
 
-    # Validasi token
-    token = (
-        websocket.query_params.get("token")
-        or websocket.cookies.get("ws_token")
-    )
-    if not token or not secrets.compare_digest(token, SERVER_TOKEN):
-        await websocket.close(code=1008)
-        return
+    # Validasi token jika auth aktif
+    is_no_auth = NO_AUTH or (os.environ.get("WORKSPACE_NO_AUTH", "0") == "1")
+    if not is_no_auth:
+        active_token = SERVER_TOKEN or os.environ.get("WORKSPACE_TOKEN", "")
+        token = (
+            websocket.query_params.get("token")
+            or websocket.cookies.get("ws_token")
+        )
+        if not token or not active_token or not secrets.compare_digest(token, active_token):
+            await websocket.close(code=1008)
+            return
 
     # Validasi ID sesi
     if not id or not id.startswith("ws-"):
@@ -579,10 +630,36 @@ if WEB_DIR.exists():
     app.mount("/", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
 
 def main():
+    global SERVER_HOST, SERVER_PORT, NO_AUTH, SERVER_TOKEN
     try:
-        uvicorn.run(app, host="127.0.0.1", port=SERVER_PORT, access_log=False, log_level="warning")
+        os.setsid()
     except OSError:
-        sys.stderr.write(f"Port {SERVER_PORT} sudah dipakai\n")
+        pass
+
+    args = parse_args()
+    SERVER_HOST = args.host or SERVER_HOST
+    SERVER_PORT = args.port or SERVER_PORT
+    NO_AUTH = args.no_auth or NO_AUTH
+    SERVER_TOKEN = args.token or SERVER_TOKEN
+    RELOAD = args.reload or (os.environ.get("WORKSPACE_RELOAD", "0") == "1")
+
+    # Simpan ke env agar reloader worker mewarisi konfigurasi
+    os.environ["WORKSPACE_HOST"] = SERVER_HOST
+    os.environ["WORKSPACE_PORT"] = str(SERVER_PORT)
+    os.environ["WORKSPACE_NO_AUTH"] = "1" if NO_AUTH else "0"
+    os.environ["WORKSPACE_TOKEN"] = SERVER_TOKEN
+    if RELOAD:
+        os.environ["WORKSPACE_RELOAD"] = "1"
+
+    check_port_available(SERVER_PORT, SERVER_HOST)
+
+    try:
+        if RELOAD:
+            uvicorn.run("server.main:app", host=SERVER_HOST, port=SERVER_PORT, reload=True, access_log=False, log_level="warning")
+        else:
+            uvicorn.run(app, host=SERVER_HOST, port=SERVER_PORT, access_log=False, log_level="warning")
+    except OSError:
+        sys.stderr.write(f"Port {SERVER_PORT} sudah dipakai di {SERVER_HOST}\n")
         sys.exit(1)
 
 if __name__ == "__main__":

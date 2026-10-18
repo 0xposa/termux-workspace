@@ -30,8 +30,61 @@
   const popupMenu = document.getElementById('popup-menu');
   const popupSearchInput = document.getElementById('popup-search-input');
   const popupItemsContainer = document.getElementById('popup-items');
-  const sidebar = document.getElementById('sidebar');
-  const btnCollapseSidebar = document.getElementById('btn-collapse-sidebar');
+  // Helper Ikon dan Badge File/Folder
+  function getFileIcon(filename, isDir) {
+    if (isDir) return '/icons/folder.svg';
+    const lower = filename.toLowerCase();
+    if (lower === '.gitignore' || lower === '.gitattributes' || lower === '.gitmodules') return '/icons/file-git.svg';
+    if (lower.endsWith('.html') || lower.endsWith('.htm')) return '/icons/file-html.svg';
+    if (lower.endsWith('.py') || lower.endsWith('.pyw') || lower.endsWith('.ipynb')) return '/icons/file-python.svg';
+    if (lower.endsWith('.js') || lower.endsWith('.mjs') || lower.endsWith('.cjs')) return '/icons/file-js.svg';
+    if (lower.endsWith('.ts') || lower.endsWith('.tsx')) return '/icons/file-ts.svg';
+    if (lower.endsWith('.css') || lower.endsWith('.scss') || lower.endsWith('.sass') || lower.endsWith('.less')) return '/icons/file-css.svg';
+    if (lower.endsWith('.json')) return '/icons/file-json.svg';
+    if (lower.endsWith('.md') || lower.endsWith('.markdown')) return '/icons/file-md.svg';
+    if (lower.endsWith('.sh') || lower.endsWith('.bash') || lower.endsWith('.zsh')) return '/icons/file-sh.svg';
+    if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.gif') || lower.endsWith('.webp') || lower.endsWith('.svg') || lower.endsWith('.ico')) return '/icons/file-image.svg';
+    if (lower.endsWith('.yml') || lower.endsWith('.yaml') || lower.endsWith('.toml') || lower.endsWith('.ini') || lower.endsWith('.env') || lower.endsWith('.conf') || lower.endsWith('.config')) return '/icons/file-config.svg';
+    if (lower.endsWith('.zip') || lower.endsWith('.tar') || lower.endsWith('.gz') || lower.endsWith('.tgz') || lower.endsWith('.bz2') || lower.endsWith('.xz') || lower.endsWith('.7z')) return '/icons/file-archive.svg';
+    return '/icons/file.svg';
+  }
+
+  function getFileBadge(filename, isDir) {
+    if (isDir) return { text: 'Folder', cls: 'badge-folder' };
+    const lower = filename.toLowerCase();
+    if (lower.endsWith('.html') || lower.endsWith('.htm')) return { text: 'HTML', cls: 'badge-html' };
+    if (lower.endsWith('.py') || lower.endsWith('.pyw') || lower.endsWith('.ipynb')) return { text: 'Python', cls: 'badge-py' };
+    if (lower.endsWith('.js') || lower.endsWith('.mjs') || lower.endsWith('.cjs')) return { text: 'JavaScript', cls: 'badge-js' };
+    if (lower.endsWith('.ts') || lower.endsWith('.tsx')) return { text: 'TypeScript', cls: 'badge-js' };
+    if (lower.endsWith('.css') || lower.endsWith('.scss') || lower.endsWith('.sass')) return { text: 'CSS', cls: 'badge-css' };
+    if (lower.endsWith('.json')) return { text: 'JSON', cls: 'badge-folder' };
+    if (lower.endsWith('.md')) return { text: 'Markdown', cls: 'badge-css' };
+    if (lower.endsWith('.sh')) return { text: 'Shell', cls: 'badge-folder' };
+    if (lower.endsWith('.png') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.svg')) return { text: 'Image', cls: '' };
+    if (lower.startsWith('.git')) return { text: 'Git', cls: 'badge-html' };
+    const dotIdx = filename.lastIndexOf('.');
+    if (dotIdx > 0) {
+      return { text: filename.substring(dotIdx + 1).toUpperCase(), cls: '' };
+    }
+    return { text: 'File', cls: '' };
+  }
+
+  // State & Elemen DOM Full Explorer
+  let isExplorerOpen = false;
+  let currentExplorerPath = null;
+  let currentExplorerItems = [];
+
+  const explorerArea = document.getElementById('explorer-area');
+  const explorerList = document.getElementById('explorer-list');
+  const explorerBreadcrumbs = document.getElementById('explorer-breadcrumbs');
+  const explorerSearchInput = document.getElementById('explorer-search-input');
+  const explorerBtnUp = document.getElementById('explorer-btn-up');
+  const explorerBtnRefresh = document.getElementById('explorer-btn-refresh');
+  const explorerBtnNewFile = document.getElementById('explorer-btn-new-file');
+  const explorerBtnNewFolder = document.getElementById('explorer-btn-new-folder');
+  const explorerBtnOpenTerminal = document.getElementById('explorer-btn-open-terminal');
+  const explorerItemCount = document.getElementById('explorer-item-count');
+  const explorerCurrentPathDisplay = document.getElementById('explorer-current-path-display');
   const terminalContainer = document.getElementById('terminal-container');
   const btnCtrl = document.getElementById('btn-ctrl');
   const btnAlt = document.getElementById('btn-alt');
@@ -185,6 +238,48 @@
       tabsContainer.appendChild(tab);
     });
 
+    // Tab Explorer
+    if (isExplorerOpen) {
+      const tab = document.createElement('div');
+      const isActive = activeTabType === 'explorer';
+      tab.className = `tab ${isActive ? 'active' : ''}`;
+
+      const tabIcon = document.createElement('img');
+      tabIcon.className = 'tab-icon';
+      tabIcon.src = '/icons/folder.svg';
+      tabIcon.width = 14;
+      tabIcon.height = 14;
+      tabIcon.alt = '';
+      tab.appendChild(tabIcon);
+
+      const title = document.createElement('span');
+      title.className = 'tab-title';
+      title.textContent = 'Explorer';
+      tab.appendChild(title);
+
+      const btnClose = document.createElement('span');
+      btnClose.className = 'tab-close';
+      btnClose.title = 'Tutup explorer';
+      const closeIcon = document.createElement('img');
+      closeIcon.className = 'tab-close-icon';
+      closeIcon.src = '/icons/close.svg';
+      closeIcon.width = 10;
+      closeIcon.height = 10;
+      closeIcon.alt = '';
+      btnClose.appendChild(closeIcon);
+      btnClose.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeExplorer();
+      });
+      tab.appendChild(btnClose);
+
+      tab.addEventListener('click', () => {
+        switchToExplorer();
+      });
+
+      tabsContainer.appendChild(tab);
+    }
+
     // Tab file editor
     Object.keys(openFiles).forEach(fPath => {
       const fileData = openFiles[fPath];
@@ -194,7 +289,7 @@
 
       const tabIcon = document.createElement('img');
       tabIcon.className = 'tab-icon';
-      tabIcon.src = '/icons/file.svg';
+      tabIcon.src = getFileIcon(fileData.name, false);
       tabIcon.width = 14;
       tabIcon.height = 14;
       tabIcon.alt = '';
@@ -237,6 +332,7 @@
     activeSessionId = sessionId;
 
     editorArea.classList.add('hidden');
+    explorerArea.classList.add('hidden');
     terminalArea.classList.remove('hidden');
     if (editorActionsBar) editorActionsBar.classList.add('hidden');
 
@@ -250,6 +346,50 @@
     }, 50);
 
     mountTerminal(activeSessionId, terminalContainer);
+  }
+
+  function openExplorer(targetPath = null) {
+    isExplorerOpen = true;
+    switchToExplorer();
+    if (!currentExplorerPath || targetPath) {
+      loadExplorerPath(targetPath || currentExplorerPath);
+    }
+  }
+
+  function switchToExplorer() {
+    activeTabType = 'explorer';
+
+    terminalArea.classList.add('hidden');
+    editorArea.classList.add('hidden');
+    explorerArea.classList.remove('hidden');
+    if (editorActionsBar) editorActionsBar.classList.add('hidden');
+
+    renderTabs();
+
+    setTimeout(() => {
+      const activeTabEl = tabsContainer.querySelector('.tab.active');
+      if (activeTabEl) {
+        activeTabEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      }
+    }, 50);
+  }
+
+  function closeExplorer() {
+    isExplorerOpen = false;
+    if (activeTabType === 'explorer') {
+      const remainingPaths = Object.keys(openFiles);
+      if (remainingPaths.length > 0) {
+        switchToEditor(remainingPaths[remainingPaths.length - 1]);
+      } else if (activeSessionId) {
+        switchToSession(activeSessionId);
+      } else if (sessions.length > 0) {
+        switchToSession(sessions[0].id);
+      } else {
+        renderTabs();
+      }
+    } else {
+      renderTabs();
+    }
   }
 
   // --- Fungsi Code Editor (CodeMirror 6) ---
@@ -367,6 +507,7 @@
     currentEditingPath = filePath;
 
     terminalArea.classList.add('hidden');
+    explorerArea.classList.add('hidden');
     editorArea.classList.remove('hidden');
     if (editorActionsBar) editorActionsBar.classList.remove('hidden');
 
@@ -450,6 +591,8 @@
       const remainingPaths = Object.keys(openFiles);
       if (remainingPaths.length > 0) {
         switchToEditor(remainingPaths[remainingPaths.length - 1]);
+      } else if (isExplorerOpen) {
+        switchToExplorer();
       } else {
         currentEditingPath = null;
         if (activeSessionId) {
@@ -679,8 +822,17 @@
   // Aksi Popup
   const popupActions = [
     { id: 'terminal', name: 'Terminal', action: () => { createNewSession(); togglePopupMenu(false); } },
-    { id: 'explorer', name: 'Explorer', action: () => { toggleSidebar(); togglePopupMenu(false); } },
-    { id: 'close', name: 'Close Tab', action: () => { if (activeSessionId) closeSession(activeSessionId); togglePopupMenu(false); } }
+    { id: 'explorer', name: 'Explorer', action: () => { openExplorer(); togglePopupMenu(false); } },
+    { id: 'close', name: 'Close Tab', action: () => {
+      if (activeTabType === 'editor' && currentEditingPath) {
+        closeFile(currentEditingPath);
+      } else if (activeTabType === 'explorer') {
+        closeExplorer();
+      } else if (activeSessionId) {
+        closeSession(activeSessionId);
+      }
+      togglePopupMenu(false);
+    }}
   ];
 
   function filterPopupActions(query) {
@@ -716,23 +868,6 @@
       e.preventDefault();
       togglePopupMenu(true);
     }
-  });
-
-  // --- Sidebar Explorer ---
-  function toggleSidebar(forceState) {
-    const isCollapsed = forceState !== undefined ? !forceState : !sidebar.classList.contains('collapsed');
-    const collapseImg = btnCollapseSidebar.querySelector('img');
-    if (isCollapsed) {
-      sidebar.classList.add('collapsed');
-      if (collapseImg) collapseImg.src = '/icons/arrow-right.svg';
-    } else {
-      sidebar.classList.remove('collapsed');
-      if (collapseImg) collapseImg.src = '/icons/arrow-left.svg';
-    }
-  }
-
-  btnCollapseSidebar.addEventListener('click', () => {
-    toggleSidebar(false);
   });
 
   // --- Tombol Ekstra Keyboard ---
@@ -976,7 +1111,7 @@
               }
               renderTabs();
             }
-            refreshExplorerTree();
+            refreshExplorer();
           } else {
             const err = await res.json().catch(() => ({ detail: 'Gagal mengubah nama' }));
             alert(err.detail || 'Gagal mengubah nama');
@@ -1010,7 +1145,7 @@
               }
               renderTabs();
             }
-            refreshExplorerTree();
+            refreshExplorer();
           } else {
             const err = await res.json().catch(() => ({ detail: 'Gagal memindahkan file/folder' }));
             alert(err.detail || 'Gagal memindahkan file/folder');
@@ -1036,7 +1171,7 @@
             if (openFiles[targetItem.path]) {
               closeFile(targetItem.path);
             }
-            refreshExplorerTree();
+            refreshExplorer();
           } else {
             const err = await res.json().catch(() => ({ detail: 'Gagal menghapus' }));
             alert(err.detail || 'Gagal menghapus');
@@ -1048,9 +1183,7 @@
     }
   });
 
-  // --- Sidebar Explorer Tree ---
-  const fileTree = document.getElementById('file-tree');
-
+  // --- Full Screen File Explorer ---
   function shellEscape(str) {
     if (/^[a-zA-Z0-9_\.\-\/]+$/.test(str)) {
       return str;
@@ -1058,121 +1191,263 @@
     return "'" + str.replace(/'/g, "'\\''") + "'";
   }
 
-  function refreshExplorerTree() {
-    renderExplorerLevel(fileTree);
+  function refreshExplorer() {
+    loadExplorerPath(currentExplorerPath);
   }
 
-  async function renderExplorerLevel(parentElement, path = null, depth = 0) {
+  async function loadExplorerPath(path = null) {
     try {
       const endpoint = path ? `/api/fs?path=${encodeURIComponent(path)}` : '/api/fs';
       const res = await apiFetch(endpoint);
       if (!res.ok) {
-        const err = document.createElement('div');
-        err.className = 'tree-item';
-        err.style.color = '#FF6B6B';
-        err.style.paddingLeft = `${depth * 14 + 10}px`;
-        err.textContent = 'Akses ditolak / Error';
-        parentElement.appendChild(err);
+        const err = await res.json().catch(() => ({ detail: 'Akses folder gagal' }));
+        console.error('Gagal memuat direktori:', err.detail);
         return;
       }
-      const items = await res.json();
-      parentElement.innerHTML = '';
-      items.forEach(item => {
-        const node = document.createElement('div');
-        node.className = 'tree-node';
-
-        const row = document.createElement('div');
-        row.className = 'tree-item';
-        row.style.paddingLeft = `${depth * 14 + 10}px`;
-
-        const arrow = document.createElement('span');
-        arrow.className = 'tree-arrow';
-        if (item.type === 'dir') {
-          const arrowImg = document.createElement('img');
-          arrowImg.className = 'tree-arrow-img';
-          arrowImg.src = '/icons/arrow-right.svg';
-          arrowImg.width = 10;
-          arrowImg.height = 10;
-          arrowImg.alt = '';
-          arrow.appendChild(arrowImg);
-        }
-        row.appendChild(arrow);
-
-        const icon = document.createElement('span');
-        icon.className = 'tree-icon';
-        const iconImg = document.createElement('img');
-        iconImg.className = 'tree-icon-img';
-        iconImg.src = item.type === 'dir' ? '/icons/folder.svg' : '/icons/file.svg';
-        iconImg.width = 15;
-        iconImg.height = 15;
-        iconImg.alt = '';
-        icon.appendChild(iconImg);
-        row.appendChild(icon);
-
-        const name = document.createElement('span');
-        name.className = 'tree-name';
-        name.textContent = item.name;
-        row.appendChild(name);
-
-        // Tombol Titik Tiga untuk Menu Opsi
-        const dots = document.createElement('span');
-        dots.className = 'tree-dots';
-        dots.title = 'Menu opsi';
-        const dotsImg = document.createElement('img');
-        dotsImg.className = 'tree-dots-img';
-        dotsImg.src = '/icons/dots.svg';
-        dotsImg.width = 14;
-        dotsImg.height = 14;
-        dotsImg.alt = '';
-        dots.appendChild(dotsImg);
-        dots.addEventListener('click', (e) => {
-          e.stopPropagation();
-          showContextMenu(e, item);
-        });
-        row.appendChild(dots);
-
-        node.appendChild(row);
-
-        if (item.type === 'dir') {
-          const children = document.createElement('div');
-          children.className = 'tree-children';
-          children.style.display = 'none';
-          node.appendChild(children);
-
-          let loaded = false;
-          row.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const isExpanded = children.style.display === 'flex';
-            const arrowImg = arrow.querySelector('.tree-arrow-img');
-            if (isExpanded) {
-              children.style.display = 'none';
-              if (arrowImg) arrowImg.src = '/icons/arrow-right.svg';
-            } else {
-              if (!loaded) {
-                await renderExplorerLevel(children, item.path, depth + 1);
-                loaded = true;
-              }
-              children.style.display = 'flex';
-              if (arrowImg) arrowImg.src = '/icons/arrow-down.svg';
-            }
-          });
-        } else {
-          row.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (isReadableTextFile(item.name)) {
-              openFileInEditor(item.path);
-            }
-          });
-        }
-
-        parentElement.appendChild(node);
-      });
+      const resolvedPath = res.headers.get('X-Current-Path') || path;
+      if (resolvedPath) {
+        currentExplorerPath = resolvedPath;
+      }
+      currentExplorerItems = await res.json();
+      renderExplorerUI();
     } catch (err) {
       console.error('Gagal memuat explorer:', err);
     }
   }
 
+  function renderBreadcrumbs() {
+    if (!explorerBreadcrumbs) return;
+    explorerBreadcrumbs.innerHTML = '';
+    if (!currentExplorerPath) return;
+
+    const parts = currentExplorerPath.split('/').filter(Boolean);
+    let accum = '';
+
+    // Root crumb
+    const rootCrumb = document.createElement('span');
+    rootCrumb.className = `breadcrumb-segment ${parts.length === 0 ? 'current' : ''}`;
+    rootCrumb.textContent = '/';
+    rootCrumb.addEventListener('click', () => loadExplorerPath('/'));
+    explorerBreadcrumbs.appendChild(rootCrumb);
+
+    parts.forEach((part, index) => {
+      accum += '/' + part;
+      const targetPath = accum;
+      const isLast = index === parts.length - 1;
+
+      const sep = document.createElement('span');
+      sep.className = 'breadcrumb-sep';
+      sep.textContent = '/';
+      explorerBreadcrumbs.appendChild(sep);
+
+      const segment = document.createElement('span');
+      segment.className = `breadcrumb-segment ${isLast ? 'current' : ''}`;
+      segment.textContent = part;
+      if (!isLast) {
+        segment.addEventListener('click', () => loadExplorerPath(targetPath));
+      }
+      explorerBreadcrumbs.appendChild(segment);
+    });
+
+    setTimeout(() => {
+      if (explorerBreadcrumbs) {
+        explorerBreadcrumbs.scrollLeft = explorerBreadcrumbs.scrollWidth;
+      }
+    }, 20);
+  }
+
+  function renderExplorerUI() {
+    if (!explorerList) return;
+
+    renderBreadcrumbs();
+
+    const query = (explorerSearchInput ? explorerSearchInput.value : '').trim().toLowerCase();
+    const filtered = query
+      ? currentExplorerItems.filter(item => item.name.toLowerCase().includes(query))
+      : currentExplorerItems;
+
+    explorerList.innerHTML = '';
+
+    if (filtered.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'explorer-empty';
+      empty.textContent = query ? 'Tidak ada file atau folder yang cocok' : 'Folder ini kosong';
+      explorerList.appendChild(empty);
+    } else {
+      filtered.forEach(item => {
+        const isDir = item.type === 'dir';
+        const row = document.createElement('div');
+        row.className = 'explorer-row';
+
+        // Kolom Nama & Icon
+        const colName = document.createElement('div');
+        colName.className = 'col-name';
+
+        const iconImg = document.createElement('img');
+        iconImg.className = 'explorer-icon';
+        iconImg.src = getFileIcon(item.name, isDir);
+        iconImg.width = 18;
+        iconImg.height = 18;
+        iconImg.alt = '';
+        colName.appendChild(iconImg);
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'explorer-file-name';
+        nameSpan.textContent = item.name;
+        colName.appendChild(nameSpan);
+
+        row.appendChild(colName);
+
+        // Kolom Tipe Badge
+        const colType = document.createElement('div');
+        colType.className = 'col-type';
+        const badgeData = getFileBadge(item.name, isDir);
+        const badge = document.createElement('span');
+        badge.className = `explorer-type-badge ${badgeData.cls}`;
+        badge.textContent = badgeData.text;
+        colType.appendChild(badge);
+        row.appendChild(colType);
+
+        // Kolom Aksi Titik Tiga
+        const colActions = document.createElement('div');
+        colActions.className = 'col-actions';
+        const dotsBtn = document.createElement('span');
+        dotsBtn.className = 'explorer-dots-btn';
+        dotsBtn.title = 'Opsi';
+        const dotsImg = document.createElement('img');
+        dotsImg.src = '/icons/dots.svg';
+        dotsImg.width = 14;
+        dotsImg.height = 14;
+        dotsImg.alt = '';
+        dotsBtn.appendChild(dotsImg);
+        dotsBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showContextMenu(e, item);
+        });
+        colActions.appendChild(dotsBtn);
+        row.appendChild(colActions);
+
+        // Klik row untuk membuka
+        row.addEventListener('click', (e) => {
+          if (isDir) {
+            loadExplorerPath(item.path);
+          } else {
+            if (isReadableTextFile(item.name)) {
+              openFileInEditor(item.path);
+            } else {
+              alert(`File "${item.name}" adalah file biner/media dan tidak dapat diedit langsung.`);
+            }
+          }
+        });
+
+        explorerList.appendChild(row);
+      });
+    }
+
+    const dirCount = currentExplorerItems.filter(i => i.type === 'dir').length;
+    const fileCount = currentExplorerItems.filter(i => i.type !== 'dir').length;
+    if (explorerItemCount) {
+      explorerItemCount.textContent = `${filtered.length} item (${dirCount} folder, ${fileCount} file)`;
+    }
+    if (explorerCurrentPathDisplay) {
+      explorerCurrentPathDisplay.textContent = currentExplorerPath || '~';
+    }
+  }
+
+  // Toolbar Actions Event Listeners
+  if (explorerBtnUp) {
+    explorerBtnUp.addEventListener('click', () => {
+      if (!currentExplorerPath || currentExplorerPath === '/') return;
+      const lastSlash = currentExplorerPath.lastIndexOf('/');
+      const parentPath = lastSlash <= 0 ? '/' : currentExplorerPath.substring(0, lastSlash);
+      loadExplorerPath(parentPath);
+    });
+  }
+
+  if (explorerBtnRefresh) {
+    explorerBtnRefresh.addEventListener('click', () => {
+      refreshExplorer();
+    });
+  }
+
+  if (explorerSearchInput) {
+    explorerSearchInput.addEventListener('input', () => {
+      renderExplorerUI();
+    });
+  }
+
+  if (explorerBtnNewFile) {
+    explorerBtnNewFile.addEventListener('click', async () => {
+      if (!currentExplorerPath) return;
+      const fileName = await showFsModal({
+        title: 'Buat File Baru',
+        message: `Buat file baru di ${currentExplorerPath}:`,
+        defaultValue: '',
+        confirmText: 'Buat File'
+      });
+      if (fileName) {
+        const cleanName = fileName.trim().replace(/^\/+/, '');
+        const filePath = `${currentExplorerPath.replace(/\/+$/, '')}/${cleanName}`;
+        try {
+          const res = await apiFetch('/api/fs/content', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: filePath, content: '' })
+          });
+          if (res.ok) {
+            await loadExplorerPath(currentExplorerPath);
+            await openFileInEditor(filePath);
+          } else {
+            const err = await res.json().catch(() => ({ detail: 'Gagal membuat file' }));
+            alert(err.detail || 'Gagal membuat file');
+          }
+        } catch (e) {
+          console.error('Error buat file:', e);
+        }
+      }
+    });
+  }
+
+  if (explorerBtnNewFolder) {
+    explorerBtnNewFolder.addEventListener('click', async () => {
+      if (!currentExplorerPath) return;
+      const folderName = await showFsModal({
+        title: 'Buat Folder Baru',
+        message: `Buat folder baru di ${currentExplorerPath}:`,
+        defaultValue: '',
+        confirmText: 'Buat Folder'
+      });
+      if (folderName) {
+        const cleanName = folderName.trim().replace(/^\/+/, '');
+        const folderPath = `${currentExplorerPath.replace(/\/+$/, '')}/${cleanName}`;
+        try {
+          const res = await apiFetch('/api/fs/mkdir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: folderPath })
+          });
+          if (res.ok) {
+            await loadExplorerPath(currentExplorerPath);
+          } else {
+            const err = await res.json().catch(() => ({ detail: 'Gagal membuat folder' }));
+            alert(err.detail || 'Gagal membuat folder');
+          }
+        } catch (e) {
+          console.error('Error buat folder:', e);
+        }
+      }
+    });
+  }
+
+  if (explorerBtnOpenTerminal) {
+    explorerBtnOpenTerminal.addEventListener('click', async () => {
+      if (currentExplorerPath) {
+        await createNewSession(currentExplorerPath);
+      }
+    });
+  }
+
   // Inisialisasi awal
   loadSessions();
-  renderExplorerLevel(fileTree);
+  loadExplorerPath();
 })();

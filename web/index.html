@@ -9,17 +9,6 @@
 </head>
 <body>
   <div id="layout" class="layout">
-    <!-- Sidebar Explorer -->
-    <aside id="sidebar" class="sidebar">
-      <div class="sidebar-header">
-        <span class="sidebar-title">Explorer</span>
-        <button id="btn-collapse-sidebar" class="btn-icon" title="Lipat sidebar">
-          <img src="/icons/arrow-left.svg" width="14" height="14" alt="" />
-        </button>
-      </div>
-      <div id="file-tree" class="file-tree"></div>
-    </aside>
-
     <!-- Area Utama -->
     <div class="main-area">
       <!-- Bar Tab -->
@@ -56,6 +45,52 @@
       <!-- Area Terminal -->
       <div id="terminal-area" class="terminal-area">
         <div id="terminal-container" class="terminal-container"></div>
+      </div>
+
+      <!-- Area Explorer Full View -->
+      <div id="explorer-area" class="explorer-area hidden">
+        <div class="explorer-toolbar">
+          <div class="explorer-nav-group">
+            <button id="explorer-btn-up" class="explorer-tool-btn" title="Folder Induk (Naik 1 Level)">
+              <img src="/icons/arrow-left.svg" width="14" height="14" alt="" />
+            </button>
+            <button id="explorer-btn-refresh" class="explorer-tool-btn" title="Muat Ulang">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+              </svg>
+            </button>
+            <div id="explorer-breadcrumbs" class="explorer-breadcrumbs"></div>
+          </div>
+          <div class="explorer-actions-group">
+            <div class="explorer-search-wrapper">
+              <input type="text" id="explorer-search-input" class="explorer-search-input" placeholder="Filter file/folder..." autocomplete="off">
+            </div>
+            <button id="explorer-btn-new-file" class="explorer-action-btn" title="Buat File Baru">
+              <span class="btn-plus">+</span> File
+            </button>
+            <button id="explorer-btn-new-folder" class="explorer-action-btn" title="Buat Folder Baru">
+              <span class="btn-plus">+</span> Folder
+            </button>
+            <button id="explorer-btn-open-terminal" class="explorer-action-btn" title="Buka Terminal di folder ini">
+              <img src="/icons/terminal.svg" width="14" height="14" alt="" />
+              <span class="btn-text">Terminal</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="explorer-content" class="explorer-content">
+          <div class="explorer-table-header">
+            <div class="col-name">Nama</div>
+            <div class="col-type">Tipe</div>
+            <div class="col-actions">Aksi</div>
+          </div>
+          <div id="explorer-list" class="explorer-list"></div>
+        </div>
+
+        <div class="explorer-footer">
+          <span id="explorer-item-count">0 item</span>
+          <span id="explorer-current-path-display">~</span>
+        </div>
       </div>
 
       <!-- Area Code Editor Full View -->
