@@ -118,6 +118,7 @@
   const explorerBgContextMenu = document.getElementById('explorer-bg-context-menu');
   const terminalContextMenu = document.getElementById('terminal-context-menu');
   const explorerContent = document.getElementById('explorer-content');
+  const contextMenuBackdrop = document.getElementById('context-menu-backdrop');
   let activeContextItem = null; // { path, name, type }
 
   const fsModal = document.getElementById('fs-modal');
@@ -1069,40 +1070,85 @@
   });
 
   // --- Context Menu Explorer, Terminal & Background ---
+  function isAnyContextMenuVisible() {
+    return Boolean(
+      (explorerContextMenu && !explorerContextMenu.classList.contains('hidden')) ||
+      (terminalContextMenu && !terminalContextMenu.classList.contains('hidden')) ||
+      (explorerBgContextMenu && !explorerBgContextMenu.classList.contains('hidden'))
+    );
+  }
+
+  function showContextMenuBackdrop() {
+    if (contextMenuBackdrop) {
+      contextMenuBackdrop.classList.remove('hidden');
+    }
+  }
+
+  function hideContextMenuBackdrop() {
+    if (contextMenuBackdrop) {
+      contextMenuBackdrop.classList.add('hidden');
+    }
+  }
+
   function hideContextMenu() {
     if (explorerContextMenu) explorerContextMenu.classList.add('hidden');
     activeContextItem = null;
+    if (!isAnyContextMenuVisible()) {
+      hideContextMenuBackdrop();
+    }
   }
 
   function hideTerminalContextMenu() {
     if (terminalContextMenu) terminalContextMenu.classList.add('hidden');
+    if (!isAnyContextMenuVisible()) {
+      hideContextMenuBackdrop();
+    }
   }
 
   function hideExplorerBgContextMenu() {
     if (explorerBgContextMenu) explorerBgContextMenu.classList.add('hidden');
+    if (!isAnyContextMenuVisible()) {
+      hideContextMenuBackdrop();
+    }
   }
 
   function hideAllContextMenus() {
-    hideContextMenu();
-    hideTerminalContextMenu();
-    hideExplorerBgContextMenu();
+    if (explorerContextMenu) explorerContextMenu.classList.add('hidden');
+    if (terminalContextMenu) terminalContextMenu.classList.add('hidden');
+    if (explorerBgContextMenu) explorerBgContextMenu.classList.add('hidden');
+    activeContextItem = null;
+    hideContextMenuBackdrop();
+  }
+
+  // Listener Backdrop Transparan: Menangkap klik kiri & kanan di luar menu
+  if (contextMenuBackdrop) {
+    contextMenuBackdrop.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      hideAllContextMenus();
+    });
+    contextMenuBackdrop.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      hideAllContextMenus();
+    });
   }
 
   document.addEventListener('click', (e) => {
-    if (explorerContextMenu && !explorerContextMenu.contains(e.target)) {
-      hideContextMenu();
-    }
-    if (terminalContextMenu && !terminalContextMenu.contains(e.target) && (!terminalContainer || !terminalContainer.contains(e.target))) {
-      hideTerminalContextMenu();
-    }
-    if (explorerBgContextMenu && !explorerBgContextMenu.contains(e.target)) {
-      hideExplorerBgContextMenu();
+    if (isAnyContextMenuVisible()) {
+      const isInsideAnyMenu =
+        (explorerContextMenu && explorerContextMenu.contains(e.target)) ||
+        (terminalContextMenu && terminalContextMenu.contains(e.target)) ||
+        (explorerBgContextMenu && explorerBgContextMenu.contains(e.target));
+      if (!isInsideAnyMenu) {
+        hideAllContextMenus();
+      }
     }
   });
 
   document.addEventListener('keydown', (e) => {
-    if (terminalContextMenu && !terminalContextMenu.classList.contains('hidden')) {
-      hideTerminalContextMenu();
+    if (isAnyContextMenuVisible()) {
+      hideAllContextMenus();
     }
   });
 
@@ -1131,6 +1177,7 @@
     }
 
     explorerContextMenu.classList.remove('hidden');
+    showContextMenuBackdrop();
 
     let left, top;
     if (e.clientX !== undefined && e.clientY !== undefined) {
@@ -1176,6 +1223,7 @@
     }
 
     terminalContextMenu.classList.remove('hidden');
+    showContextMenuBackdrop();
 
     let left, top;
     if (e.clientX !== undefined && e.clientY !== undefined) {
@@ -1270,22 +1318,26 @@
     terminalContainer.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      if (isAnyContextMenuVisible()) {
+        hideAllContextMenus();
+        return;
+      }
       const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
       if (inst) inst.term.focus();
       showTerminalContextMenu(e);
     });
 
-    // 2. Klik kiri pada terminal: tampilkan context menu desktop (seperti di desktop/mobile)
+    // 2. Klik kiri pada terminal: jika context menu terbuka, hanya bertindak menutupnya
     terminalContainer.addEventListener('click', (e) => {
       if (terminalContextMenu && terminalContextMenu.contains(e.target)) return;
-      const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
-      if (inst) inst.term.focus();
-
-      // Jika context menu terminal sedang terbuka, klik berikutnya menutupnya
-      if (terminalContextMenu && !terminalContextMenu.classList.contains('hidden')) {
-        hideTerminalContextMenu();
+      if (isAnyContextMenuVisible()) {
+        e.preventDefault();
+        e.stopPropagation();
+        hideAllContextMenus();
         return;
       }
+      const inst = activeSessionId ? terminalInstances[activeSessionId] : null;
+      if (inst) inst.term.focus();
       showTerminalContextMenu(e);
     });
   }
@@ -1297,6 +1349,7 @@
     if (!explorerBgContextMenu) return;
 
     explorerBgContextMenu.classList.remove('hidden');
+    showContextMenuBackdrop();
 
     let left, top;
     if (e.clientX !== undefined && e.clientY !== undefined) {
@@ -1354,12 +1407,22 @@
       }
       e.preventDefault();
       e.stopPropagation();
+      if (isAnyContextMenuVisible()) {
+        hideAllContextMenus();
+        return;
+      }
       showExplorerBgContextMenu(e);
     });
   }
 
   // Cegah menu klik kanan default browser yang mengganggu (kecuali input, textarea, dan editor)
   document.addEventListener('contextmenu', (e) => {
+    if (isAnyContextMenuVisible()) {
+      e.preventDefault();
+      e.stopPropagation();
+      hideAllContextMenus();
+      return;
+    }
     const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.cm-editor');
     if (!isInput) {
       e.preventDefault();
@@ -1665,6 +1728,10 @@
           dotsBtn.appendChild(dotsImg);
           dotsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (isAnyContextMenuVisible()) {
+              hideAllContextMenus();
+              return;
+            }
             showContextMenu(e, item);
           });
           cardHeader.appendChild(dotsBtn);
@@ -1688,6 +1755,10 @@
 
           // Klik Card untuk Membuka
           card.addEventListener('click', () => {
+            if (isAnyContextMenuVisible()) {
+              hideAllContextMenus();
+              return;
+            }
             if (isDir) {
               loadExplorerPath(item.path);
             } else {
@@ -1703,6 +1774,10 @@
           card.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            if (isAnyContextMenuVisible()) {
+              hideAllContextMenus();
+              return;
+            }
             showContextMenu(e, item);
           });
 
@@ -1759,6 +1834,10 @@
           dotsBtn.appendChild(dotsImg);
           dotsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (isAnyContextMenuVisible()) {
+              hideAllContextMenus();
+              return;
+            }
             showContextMenu(e, item);
           });
           colActions.appendChild(dotsBtn);
@@ -1766,6 +1845,10 @@
 
           // Klik row untuk membuka
           row.addEventListener('click', () => {
+            if (isAnyContextMenuVisible()) {
+              hideAllContextMenus();
+              return;
+            }
             if (isDir) {
               loadExplorerPath(item.path);
             } else {
@@ -1781,6 +1864,10 @@
           row.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             e.stopPropagation();
+            if (isAnyContextMenuVisible()) {
+              hideAllContextMenus();
+              return;
+            }
             showContextMenu(e, item);
           });
 

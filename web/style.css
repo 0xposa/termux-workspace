@@ -472,6 +472,22 @@ body, html {
   }
 }
 
+/* Backdrop Transparan Penutup Context Menu */
+.context-menu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 999;
+  background: transparent;
+  cursor: default;
+}
+
+.context-menu-backdrop.hidden {
+  display: none;
+}
+
 /* Context Menu Explorer - macOS Frosted Glass */
 .explorer-context-menu {
   position: fixed;
