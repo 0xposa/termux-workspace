@@ -5,4 +5,11 @@
     <string name="server_connection_failed">Gagal menyambung ke server Workspace. Pastikan izin RUN_COMMAND telah diberikan dan allow-external-apps=true ada di ~/.termux/termux.properties.</string>
     <string name="connecting_server">Menyambungkan ke Termux Workspace...</string>
     <string name="btn_retry">Coba lagi</string>
+    <string name="dialog_choose_language_title">Pilih Bahasa / Select Language</string>
+    <string name="btn_confirm">Lanjutkan</string>
+    <string name="dialog_perm_title">Izin Termux Diperlukan</string>
+    <string name="dialog_perm_message">Termux Workspace membutuhkan izin \"Run commands in Termux environment\" agar dapat menyalakan server Termux di latar belakang secara otomatis.\n\nLangkah mudah:\n1. Ketuk \"Buka Pengaturan\" di bawah\n2. Buka menu \"Izin\" (Permissions)\n3. Pilih \"Izin tambahan\" (Additional permissions)\n4. Aktifkan \"Run commands in Termux environment\"</string>
+    <string name="btn_open_settings">Buka Pengaturan</string>
+    <string name="btn_later">Nanti / Coba Dulu</string>
+    <string name="btn_change_language">Ganti Bahasa (Language)</string>
 </resources>

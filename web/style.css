@@ -279,13 +279,12 @@ body, html {
 
 /* Terminal Area */
 .terminal-area {
-  flex: 1;
+  flex: 1 1 0;
   display: flex;
   overflow: hidden;
   position: relative;
   background-color: #14161C;
   width: 100%;
-  height: 100%;
   min-height: 0;
 }
 
@@ -294,7 +293,7 @@ body, html {
 }
 
 .terminal-container {
-  flex: 1;
+  flex: 1 1 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
@@ -303,6 +302,7 @@ body, html {
 
 /* Extra Keys Bar - macOS Glass Dock Style */
 .extra-keys-bar {
+  flex-shrink: 0;
   height: 42px;
   background: rgba(24, 27, 34, 0.78);
   backdrop-filter: blur(20px) saturate(180%);
@@ -314,7 +314,12 @@ body, html {
   padding: 0 6px;
   gap: 5px;
   user-select: none;
-  z-index: 5;
+  z-index: 10;
+  width: 100%;
+}
+
+.extra-keys-bar.hidden {
+  display: none !important;
 }
 
 .key-btn {
@@ -351,9 +356,8 @@ body, html {
 
 /* Area Code Editor Full View */
 .editor-area {
-  flex: 1;
+  flex: 1 1 0;
   width: 100%;
-  height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -458,9 +462,43 @@ body, html {
   box-sizing: border-box !important;
 }
 
+.cm-activeLine {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
 .cm-activeLineGutter {
   background-color: #282C34 !important;
-  color: #ABB2BF !important;
+  color: #5EF0B4 !important;
+  font-weight: 600 !important;
+}
+
+/* Bracket Pair Colorization (Rainbow Brackets) */
+.cm-bracket-pair-0 { color: #FFD700 !important; font-weight: 600; }
+.cm-bracket-pair-1 { color: #DA70D6 !important; font-weight: 600; }
+.cm-bracket-pair-2 { color: #179FFF !important; font-weight: 600; }
+.cm-bracket-pair-3 { color: #5EF0B4 !important; font-weight: 600; }
+.cm-bracket-pair-4 { color: #FFA657 !important; font-weight: 600; }
+
+/* Indentation Guides */
+:root {
+  --indent-marker-bg-color: #282E3E;
+  --indent-marker-active-bg-color: #566482;
+}
+
+.cm-line {
+  position: relative;
+}
+
+.cm-indent-markers::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 2px;
+  right: 0;
+  bottom: 0;
+  background: var(--indent-markers);
+  pointer-events: none;
+  z-index: 0;
 }
 
 @media (max-width: 520px) {
@@ -682,9 +720,8 @@ body, html {
    Area Explorer Full View
    ========================================================================== */
 .explorer-area {
-  flex: 1;
+  flex: 1 1 0;
   width: 100%;
-  height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;

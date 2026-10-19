@@ -2,10 +2,10 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Termux Workspace</title>
   <link rel="stylesheet" href="/vendor/xterm.css">
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css?v=4">
 </head>
 <body>
   <div id="layout" class="layout">
@@ -34,8 +34,7 @@
         <div class="popup-title">New Session</div>
         <div id="popup-items" class="popup-items">
           <div class="popup-item" data-action="terminal">Terminal</div>
-          <div class="popup-item" data-action="termux-storage">Termux Storage</div>
-          <div class="popup-item" data-action="android-storage">Android Storage</div>
+          <div class="popup-item" data-action="storage">Storage</div>
         </div>
         <div class="popup-search-box">
           <input type="text" id="popup-search-input" placeholder="Search/shortcut..." autocomplete="off">
@@ -148,7 +147,7 @@
       </div>
 
       <!-- Baris Tombol Ekstra -->
-      <div id="extra-keys-bar" class="extra-keys-bar">
+      <div id="extra-keys-bar" class="extra-keys-bar hidden">
         <button class="key-btn" data-key="Esc">Esc</button>
         <button class="key-btn" data-key="Tab">Tab</button>
         <button class="key-btn" data-key="Ctrl" id="btn-ctrl">Ctrl</button>
@@ -261,18 +260,11 @@
       </svg>
       Sesi Baru (New Session)
     </div>
-    <div class="context-menu-item" data-action="term-open-termux-storage">
+    <div class="context-menu-item" data-action="term-open-storage">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="context-menu-icon">
-        <path d="M4 17l6-6-6-6M12 19h8"></path>
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
       </svg>
-      Buka Termux Storage
-    </div>
-    <div class="context-menu-item" data-action="term-open-android-storage">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="context-menu-icon">
-        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-        <line x1="12" y1="18" x2="12.01" y2="18"></line>
-      </svg>
-      Buka Android Storage
+      Buka Storage
     </div>
   </div>
 
@@ -335,10 +327,6 @@
       Simpan (Save)
       <span class="context-menu-shortcut">Ctrl+S</span>
     </div>
-    <div class="context-menu-item" data-action="editor-send-terminal">
-      <img src="/icons/terminal.svg" class="context-menu-icon" width="15" height="15" alt="" />
-      Kirim Path ke Terminal
-    </div>
     <div class="context-menu-separator"></div>
     <div class="context-menu-item" data-action="editor-close">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="context-menu-icon">
@@ -368,6 +356,6 @@
   <script src="/vendor/xterm.js"></script>
   <script src="/vendor/addon-fit.js"></script>
   <script src="/vendor/codemirror.bundle.js"></script>
-  <script src="/app.js"></script>
+  <script src="/app.js?v=4"></script>
 </body>
 </html>

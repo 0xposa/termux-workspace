@@ -47,6 +47,30 @@
             android:fontFamily="monospace"
             android:text="@string/btn_retry"
             android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btn_open_settings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:backgroundTint="@color/background_bar"
+            android:textColor="@color/accent_green"
+            android:textSize="13sp"
+            android:fontFamily="monospace"
+            android:text="@string/btn_open_settings"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btn_change_language"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:backgroundTint="@color/background_bar"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:text="@string/btn_change_language"
+            android:visibility="gone" />
     </LinearLayout>
 
 </FrameLayout>

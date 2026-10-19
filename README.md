@@ -139,8 +139,10 @@ To restart or stop the production server:
 
 #### Option C: Android Add-on App (APK)
 1. **Download APK**: Download `app-debug.apk` generated automatically by GitHub Actions from the repository's **Actions** $\to$ **Artifacts** section.
-2. **Grant Permission**: Go to **Android Settings** $\to$ **Apps** $\to$ **Termux Workspace** $\to$ **Permissions** $\to$ **Additional permissions** $\to$ Enable **"Run commands in Termux environment"**.
-3. **Launch**: Open **Termux Workspace** from your app drawer. It will bootstrap the server and enter fullscreen mode automatically.
+2. **First-Launch Setup**: Open **Termux Workspace** from your app drawer. On first run:
+   * **Language Selection**: Choose between **Bahasa Indonesia** or **English**.
+   * **Permission Guide**: A friendly guide popup will automatically appear. Tap **"Open Settings"** to go straight to App Info, then enable **"Run commands in Termux environment"** under *Permissions* $\to$ *Additional permissions*.
+3. **Automatic Connect**: Returning to the app will automatically bootstrap the Termux server and enter fullscreen workspace mode.
 
 ---
 
@@ -285,10 +287,12 @@ Untuk merestart atau menghentikan server produksi:
 #### Opsi 3: Menggunakan Aplikasi Android Add-on (APK)
 1. **Dapatkan APK**:
    Setiap kali commit di-push ke branch `main`, GitHub Actions akan otomatis mengompilasi APK debug via workflow `.github/workflows/build-apk.yml`. Unduh file `app-debug.apk` dari tab **Actions** $\to$ **Artifacts** di repositori GitHub.
-2. **Berikan Izin RUN_COMMAND**:
-   Buka **Pengaturan Android** $\to$ **Aplikasi** $\to$ **Termux Workspace** $\to$ **Izin** $\to$ **Izin Tambahan** $\to$ Aktifkan **"Run commands in Termux environment"** (`com.termux.permission.RUN_COMMAND`).
-3. **Buka Aplikasi**:
-   Buka aplikasi dari app drawer perangkat Anda. Aplikasi akan otomatis menjalankan server di Termux dan membuka antarmuka workspace secara *fullscreen immersive*.
+2. **Setup Awal Saat Pertama Kali Dibuka**:
+   Buka aplikasi dari app drawer perangkat Anda. Pada pembukaan pertama:
+   * **Pengaturan Bahasa**: Pilih bahasa antarmuka aplikasi (**Bahasa Indonesia** atau **English**).
+   * **Panduan Izin RUN_COMMAND**: Muncul popup panduan otomatis. Cukup ketuk tombol **"Buka Pengaturan"** untuk langsung menuju halaman Pengaturan Aplikasi, lalu aktifkan **"Run commands in Termux environment"** di bawah *Izin* $\to$ *Izin tambahan*.
+3. **Koneksi Otomatis**:
+   Kembali ke aplikasi, Termux Workspace akan langsung menyalakan server Termux di latar belakang dan membuka antarmuka workspace secara *fullscreen immersive*.
 
 ---
 

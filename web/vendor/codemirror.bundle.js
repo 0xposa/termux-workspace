@@ -34016,6 +34016,394 @@
       }
   });
 
+  // --- Bracket Pair Colorization (Rainbow Brackets) ---
+  function isStringOrComment(state, pos) {
+    if (typeof syntaxTree !== 'function') return false;
+    try {
+      const tree = syntaxTree(state);
+      const node = tree.resolveInner(pos, 1);
+      if (!node || !node.name) return false;
+      const name = node.name.toLowerCase();
+      return name.includes('string') || name.includes('comment') || name.includes('regex');
+    } catch (e) {
+      return false;
+    }
+  }
+
+  const rainbowColors = [
+    '#FFD700', // Gold
+    '#DA70D6', // Orchid
+    '#179FFF', // Sky Blue
+    '#5EF0B4', // Accent Green
+    '#FFA657'  // Peach Orange
+  ];
+
+  const bracketDecoMarks = rainbowColors.map((color, i) =>
+    Decoration.mark({ class: `cm-bracket-pair-${i}` })
+  );
+
+  const bracketColorPlugin = ViewPlugin.fromClass(class {
+    constructor(view) {
+      this.decorations = this.getBracketDecorations(view);
+    }
+
+    update(update) {
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = this.getBracketDecorations(update.view);
+      }
+    }
+
+    getBracketDecorations(view) {
+      const { doc } = view.state;
+      if (doc.length > 500000) return Decoration.none;
+      const decorations = [];
+      const stack = [];
+      const docStr = doc.toString();
+      const regex = /[()[\]{}]/g;
+      let match;
+
+      while ((match = regex.exec(docStr)) !== null) {
+        const char = match[0];
+        const pos = match.index;
+        if (isStringOrComment(view.state, pos)) continue;
+
+        if (char === '(' || char === '[' || char === '{') {
+          stack.push({ type: char, from: pos });
+        } else {
+          const matching = char === ')' ? '(' : (char === ']' ? '[' : '{');
+          let openIndex = -1;
+          for (let i = stack.length - 1; i >= 0; i--) {
+            if (stack[i].type === matching) {
+              openIndex = i;
+              break;
+            }
+          }
+          if (openIndex !== -1) {
+            const open = stack[openIndex];
+            const depth = openIndex;
+            stack.splice(openIndex, stack.length - openIndex);
+            const deco = bracketDecoMarks[depth % rainbowColors.length];
+            decorations.push(
+              deco.range(open.from, open.from + 1),
+              deco.range(pos, pos + 1)
+            );
+          }
+        }
+      }
+
+      decorations.sort((a, b) => a.from - b.from);
+      return Decoration.set ? Decoration.set(decorations, true) : decorations;
+    }
+  }, {
+    decorations: v => v.decorations
+  });
+
+  function bracketPairColorization() {
+    return [
+      bracketColorPlugin,
+      EditorView.baseTheme({
+        '.cm-bracket-pair-0': { color: '#FFD700 !important' },
+        '.cm-bracket-pair-1': { color: '#DA70D6 !important' },
+        '.cm-bracket-pair-2': { color: '#179FFF !important' },
+        '.cm-bracket-pair-3': { color: '#5EF0B4 !important' },
+        '.cm-bracket-pair-4': { color: '#FFA657 !important' }
+      })
+    ];
+  }
+
+  // --- Indentation Guides ---
+  function getVisibleLines(view, state = view.state) {
+    const lines = new Set();
+    for (const { from, to } of view.visibleRanges) {
+      let pos = from;
+      while (pos <= to) {
+        const line = state.doc.lineAt(pos);
+        if (!lines.has(line)) {
+          lines.add(line);
+        }
+        pos = line.to + 1;
+      }
+    }
+    return lines;
+  }
+
+  function getCurrentLine(state) {
+    const currentPos = state.selection.main.head;
+    return state.doc.lineAt(currentPos);
+  }
+
+  function numColumns(str, tabSize) {
+    let col = 0;
+    loop: for (let i = 0; i < str.length; i++) {
+      switch (str[i]) {
+        case ' ':
+        case '\u00A0': {
+          col += 1;
+          continue loop;
+        }
+        case '\t': {
+          col += tabSize - (col % tabSize);
+          continue loop;
+        }
+        case '\r': {
+          continue loop;
+        }
+        default: {
+          break loop;
+        }
+      }
+    }
+    return col;
+  }
+
+  const indentationMarkerConfig = Facet.define({
+    combine(configs) {
+      return combineConfig(configs, {
+        highlightActiveBlock: true,
+        hideFirstIndent: false,
+        markerType: 'fullScope',
+        thickness: 1,
+        activeThickness: 1
+      });
+    }
+  });
+
+  class IndentationMap {
+    constructor(lines, state, unitWidth, markerType) {
+      this.lines = lines;
+      this.state = state;
+      this.map = new Map();
+      this.unitWidth = Math.max(1, unitWidth);
+      this.markerType = markerType;
+      for (const line of this.lines) {
+        this.add(line);
+      }
+      if (this.state.facet(indentationMarkerConfig).highlightActiveBlock) {
+        this.findAndSetActiveLines();
+      }
+    }
+    has(line) {
+      return this.map.has(typeof line === 'number' ? line : line.number);
+    }
+    get(line) {
+      return this.map.get(typeof line === 'number' ? line : line.number);
+    }
+    set(line, col, level) {
+      const empty = !line.text.trim().length;
+      const entry = { line, col, level, empty };
+      this.map.set(entry.line.number, entry);
+      return entry;
+    }
+    add(line) {
+      if (this.has(line)) {
+        return this.get(line);
+      }
+      if (!line.length || !line.text.trim().length) {
+        if (line.number === 1) {
+          return this.set(line, 0, 0);
+        }
+        if (line.number === this.state.doc.lines) {
+          const prev = this.closestNonEmpty(line, -1);
+          return this.set(line, 0, prev.level);
+        }
+        const prev = this.closestNonEmpty(line, -1);
+        const next = this.closestNonEmpty(line, 1);
+        if (prev.level >= next.level && this.markerType !== 'codeOnly') {
+          return this.set(line, 0, prev.level);
+        }
+        if (prev.empty && prev.level === 0 && next.level !== 0) {
+          return this.set(line, 0, 0);
+        }
+        if (next.level > prev.level) {
+          return this.set(line, 0, prev.level + 1);
+        }
+        return this.set(line, 0, next.level);
+      }
+      const col = numColumns(line.text, this.state.tabSize || 4);
+      const level = Math.floor(col / this.unitWidth);
+      return this.set(line, col, level);
+    }
+    closestNonEmpty(from, dir) {
+      let lineNo = from.number + dir;
+      while (dir === -1 ? lineNo >= 1 : lineNo <= this.state.doc.lines) {
+        if (this.has(lineNo)) {
+          const entry = this.get(lineNo);
+          if (!entry.empty) {
+            return entry;
+          }
+        }
+        const line = this.state.doc.line(lineNo);
+        if (line.text.trim().length) {
+          const col = numColumns(line.text, this.state.tabSize || 4);
+          const level = Math.floor(col / this.unitWidth);
+          return this.set(line, col, level);
+        }
+        lineNo += dir;
+      }
+      const line = this.state.doc.line(dir === -1 ? 1 : this.state.doc.lines);
+      return this.set(line, 0, 0);
+    }
+    findAndSetActiveLines() {
+      const currentLine = getCurrentLine(this.state);
+      if (!this.has(currentLine)) {
+        return;
+      }
+      let current = this.get(currentLine);
+      if (this.has(current.line.number + 1)) {
+        const next = this.get(current.line.number + 1);
+        if (next.level > current.level) {
+          current = next;
+        }
+      }
+      if (this.has(current.line.number - 1)) {
+        const prev = this.get(current.line.number - 1);
+        if (prev.level > current.level) {
+          current = prev;
+        }
+      }
+      if (current.level === 0) {
+        return;
+      }
+      current.active = current.level;
+      for (let start = current.line.number; start > 1; start--) {
+        if (!this.has(start - 1)) {
+          continue;
+        }
+        const prev = this.get(start - 1);
+        if (prev.level < current.level) {
+          break;
+        }
+        prev.active = current.level;
+      }
+      for (let end = current.line.number; end < this.state.doc.lines; end++) {
+        if (!this.has(end + 1)) {
+          continue;
+        }
+        const next = this.get(end + 1);
+        if (next.level < current.level) {
+          break;
+        }
+        next.active = current.level;
+      }
+    }
+  }
+
+  function indentTheme(colorOptions) {
+    const defaultColors = {
+      light: '#D3D6DC',
+      dark: '#2B3245',
+      activeLight: '#A0A7B5',
+      activeDark: '#4F5B75',
+    };
+    const colors = Object.assign({}, defaultColors, colorOptions);
+    return EditorView.baseTheme({
+      '&': {
+        '--indent-marker-bg-color': colors.dark,
+        '--indent-marker-active-bg-color': colors.activeDark,
+      },
+      '.cm-line': {
+        position: 'relative',
+      },
+      '.cm-indent-markers::before': {
+        content: '""',
+        position: 'absolute',
+        top: '0',
+        left: '2px',
+        right: '0',
+        bottom: '0',
+        background: 'var(--indent-markers)',
+        pointerEvents: 'none',
+        zIndex: '0',
+      },
+    });
+  }
+
+  function createGradient(markerCssProperty, thickness, indentWidth, startOffset, columns) {
+    const gradient = `repeating-linear-gradient(to right, var(${markerCssProperty}) 0 ${thickness}px, transparent ${thickness}px ${indentWidth}ch)`;
+    return `${gradient} ${startOffset * indentWidth}.5ch/calc(${indentWidth * columns}ch - 1px) no-repeat`;
+  }
+
+  function makeBackgroundCSS(entry, indentWidth, hideFirstIndent, thickness, activeThickness) {
+    const { level, active } = entry;
+    activeThickness = activeThickness !== undefined ? activeThickness : thickness;
+    if (hideFirstIndent && level === 0) {
+      return '';
+    }
+    const startAt = hideFirstIndent ? 1 : 0;
+    const backgrounds = [];
+    if (active !== undefined) {
+      const markersBeforeActive = active - startAt - 1;
+      if (markersBeforeActive > 0) {
+        backgrounds.push(createGradient('--indent-marker-bg-color', thickness, indentWidth, startAt, markersBeforeActive));
+      }
+      backgrounds.push(createGradient('--indent-marker-active-bg-color', activeThickness, indentWidth, active - 1, 1));
+      if (active !== level) {
+        backgrounds.push(createGradient('--indent-marker-bg-color', thickness, indentWidth, active, level - active));
+      }
+    } else {
+      backgrounds.push(createGradient('--indent-marker-bg-color', thickness, indentWidth, startAt, level - startAt));
+    }
+    return backgrounds.join(',');
+  }
+
+  class IndentMarkersClass {
+    constructor(view) {
+      this.view = view;
+      this.unitWidth = (typeof getIndentUnit === 'function' ? getIndentUnit(view.state) : 2) || 2;
+      this.currentLineNumber = getCurrentLine(view.state).number;
+      this.generate(view.state);
+    }
+    update(update) {
+      const unitWidth = (typeof getIndentUnit === 'function' ? getIndentUnit(update.state) : 2) || 2;
+      const unitWidthChanged = unitWidth !== this.unitWidth;
+      if (unitWidthChanged) {
+        this.unitWidth = unitWidth;
+      }
+      const lineNumber = getCurrentLine(update.state).number;
+      const lineNumberChanged = lineNumber !== this.currentLineNumber;
+      this.currentLineNumber = lineNumber;
+      const activeBlockUpdateRequired = update.state.facet(indentationMarkerConfig).highlightActiveBlock && lineNumberChanged;
+      if (update.docChanged ||
+          update.viewportChanged ||
+          unitWidthChanged ||
+          activeBlockUpdateRequired) {
+        this.generate(update.state);
+      }
+    }
+    generate(state) {
+      const builder = new RangeSetBuilder();
+      const lines = getVisibleLines(this.view, state);
+      const { hideFirstIndent, markerType, thickness, activeThickness } = state.facet(indentationMarkerConfig);
+      const map = new IndentationMap(lines, state, this.unitWidth, markerType);
+      for (const line of lines) {
+        const entry = map.get(line.number);
+        if (!entry || !entry.level) {
+          continue;
+        }
+        const backgrounds = makeBackgroundCSS(entry, this.unitWidth, hideFirstIndent, thickness, activeThickness);
+        if (backgrounds) {
+          builder.add(line.from, line.from, Decoration.line({
+            class: 'cm-indent-markers',
+            attributes: {
+              style: `--indent-markers: ${backgrounds}`,
+            },
+          }));
+        }
+      }
+      this.decorations = builder.finish();
+    }
+  }
+
+  function indentationMarkers(config = {}) {
+    return [
+      indentationMarkerConfig.of(config),
+      indentTheme(config.colors),
+      ViewPlugin.fromClass(IndentMarkersClass, {
+        decorations: (v) => v.decorations,
+      }),
+    ];
+  }
+
   window.CM6 = {
     EditorView,
     EditorState,
@@ -34027,6 +34415,12 @@
     indentWithTab,
     undo,
     redo,
+    bracketPairColorization,
+    rainbowBrackets: bracketPairColorization,
+    indentationGuides: indentationMarkers,
+    indentationMarkers,
+    highlightActiveLine,
+    highlightActiveLineGutter,
     languages: {
       javascript,
       js: javascript,
@@ -34042,3 +34436,4 @@
   };
 
 })();
+

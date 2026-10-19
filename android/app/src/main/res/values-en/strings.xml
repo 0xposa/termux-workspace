@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Termux Workspace</string>
+    <string name="termux_not_installed">Termux is not installed. Please install Termux from F-Droid first.</string>
+    <string name="server_connection_failed">Failed to connect to Workspace server. Make sure RUN_COMMAND permission is granted and allow-external-apps=true is in ~/.termux/termux.properties.</string>
+    <string name="connecting_server">Connecting to Termux Workspace...</string>
+    <string name="btn_retry">Retry</string>
+    <string name="dialog_choose_language_title">Select Language</string>
+    <string name="btn_confirm">Continue</string>
+    <string name="dialog_perm_title">Termux Permission Required</string>
+    <string name="dialog_perm_message">Termux Workspace requires the \"Run commands in Termux environment\" permission to start the Termux server in the background automatically.\n\nQuick steps:\n1. Tap \"Open Settings\" below\n2. Open \"Permissions\"\n3. Open \"Additional permissions\"\n4. Enable \"Run commands in Termux environment\"</string>
+    <string name="btn_open_settings">Open Settings</string>
+    <string name="btn_later">Later / Try Connect</string>
+    <string name="btn_change_language">Change Language</string>
+</resources>

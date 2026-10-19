@@ -5,9 +5,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
+import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -18,7 +22,11 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat
+import androidx.core.os.LocaleListCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -26,6 +34,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.SecureRandom
+import java.util.Locale
 import kotlin.concurrent.thread
 
 class MainActivity : AppCompatActivity() {
@@ -34,6 +43,9 @@ class MainActivity : AppCompatActivity() {
         private const val PORT = 24817
         private const val PREFS_NAME = "termux_ws_prefs"
         private const val PREF_TOKEN = "auth_token"
+        private const val PREF_LANGUAGE = "pref_app_language"
+        private const val PREF_SETUP_COMPLETED = "pref_setup_completed"
+        private const val PERMISSION_RUN_COMMAND = "com.termux.permission.RUN_COMMAND"
         private const val TERMUX_PACKAGE = "com.termux"
         private const val RUN_COMMAND_SERVICE = "com.termux.app.RunCommandService"
         private const val ACTION_RUN_COMMAND = "com.termux.RUN_COMMAND"
@@ -51,13 +63,34 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progressBar: ProgressBar
     private lateinit var textStatus: TextView
     private lateinit var btnRetry: Button
+    private lateinit var btnOpenSettings: Button
+    private lateinit var btnChangeLanguage: Button
+
+    private var isConnected = false
+    private var isConnecting = false
+
+    override fun attachBaseContext(newBase: Context) {
+        val prefs = newBase.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val lang = prefs.getString(PREF_LANGUAGE, null)
+        if (!lang.isNullOrEmpty()) {
+            val locale = if (lang == "en") Locale.ENGLISH else Locale("id")
+            val config = Configuration(newBase.resources.configuration)
+            Locale.setDefault(locale)
+            config.setLocale(locale)
+            val localizedContext = newBase.createConfigurationContext(config)
+            super.attachBaseContext(localizedContext)
+            return
+        }
+        super.attachBaseContext(newBase)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyCutoutMode()
+        applyFullscreen()
         setContentView(R.layout.activity_main)
 
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
-        applyFullscreen()
 
         rootLayout = findViewById(R.id.root_layout)
         webView = findViewById(R.id.web_view)
@@ -65,6 +98,8 @@ class MainActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progress_bar)
         textStatus = findViewById(R.id.text_status)
         btnRetry = findViewById(R.id.btn_retry)
+        btnOpenSettings = findViewById(R.id.btn_open_settings)
+        btnChangeLanguage = findViewById(R.id.btn_change_language)
 
         setupInsets()
         setupBackHandler()
@@ -74,13 +109,49 @@ class MainActivity : AppCompatActivity() {
             startConnectionFlow()
         }
 
-        startConnectionFlow()
+        btnOpenSettings.setOnClickListener {
+            openAppSettings()
+        }
+
+        btnChangeLanguage.setOnClickListener {
+            showLanguageDialog(isFirstSetup = false)
+        }
+
+        checkFirstSetupAndProceed()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (isSetupCompleted() && !isConnected && !isConnecting && hasRunCommandPermission()) {
+            startConnectionFlow()
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
+            applyCutoutMode()
             applyFullscreen()
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        applyCutoutMode()
+        applyFullscreen()
+    }
+
+    private fun applyCutoutMode() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val params = window.attributes
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                params.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+            } else {
+                params.layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+            window.attributes = params
         }
     }
 
@@ -96,6 +167,9 @@ class MainActivity : AppCompatActivity() {
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { _, insets ->
             val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
             rootLayout.setPadding(0, 0, 0, imeInsets.bottom)
+            if (!insets.isVisible(WindowInsetsCompat.Type.ime())) {
+                applyFullscreen()
+            }
             insets
         }
     }
@@ -122,6 +196,118 @@ class MainActivity : AppCompatActivity() {
 
         webView.webViewClient = object : WebViewClient() {
             // Mempertahankan navigasi internal dalam WebView
+        }
+    }
+
+    private fun isSetupCompleted(): Boolean {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean(PREF_SETUP_COMPLETED, false)
+    }
+
+    private fun checkFirstSetupAndProceed() {
+        if (!isSetupCompleted()) {
+            showLanguageDialog(isFirstSetup = true)
+        } else {
+            checkPermissionAndProceed()
+        }
+    }
+
+    private fun showLanguageDialog(isFirstSetup: Boolean) {
+        val languages = arrayOf("🇮🇩 Bahasa Indonesia", "🇬🇧 English")
+        val langCodes = arrayOf("id", "en")
+
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val currentLang = prefs.getString(PREF_LANGUAGE, "id") ?: "id"
+        var selectedIndex = if (currentLang == "en") 1 else 0
+
+        val builder = AlertDialog.Builder(this, R.style.Theme_TermuxWorkspace_Dialog)
+            .setTitle(R.string.dialog_choose_language_title)
+            .setSingleChoiceItems(languages, selectedIndex) { _, which ->
+                selectedIndex = which
+            }
+            .setPositiveButton(R.string.btn_confirm) { dialog, _ ->
+                val selectedLang = langCodes[selectedIndex]
+                val changed = (selectedLang != currentLang)
+                prefs.edit()
+                    .putBoolean(PREF_SETUP_COMPLETED, true)
+                    .putString(PREF_LANGUAGE, selectedLang)
+                    .apply()
+                dialog.dismiss()
+
+                AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(selectedLang))
+
+                if (isFirstSetup) {
+                    if (changed) {
+                        recreate()
+                    } else {
+                        checkPermissionAndProceed()
+                    }
+                } else {
+                    if (changed) {
+                        recreate()
+                    }
+                }
+            }
+
+        if (!isFirstSetup) {
+            builder.setNegativeButton(android.R.string.cancel, null)
+        } else {
+            builder.setCancelable(false)
+        }
+
+        builder.show()
+    }
+
+    private fun checkPermissionAndProceed() {
+        if (!isTermuxInstalled()) {
+            showError(getString(R.string.termux_not_installed))
+            return
+        }
+
+        if (!hasRunCommandPermission()) {
+            showPermissionGuideDialog()
+        } else {
+            startConnectionFlow()
+        }
+    }
+
+    private fun hasRunCommandPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            PERMISSION_RUN_COMMAND
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun showPermissionGuideDialog() {
+        AlertDialog.Builder(this, R.style.Theme_TermuxWorkspace_Dialog)
+            .setTitle(R.string.dialog_perm_title)
+            .setMessage(R.string.dialog_perm_message)
+            .setCancelable(false)
+            .setPositiveButton(R.string.btn_open_settings) { dialog, _ ->
+                dialog.dismiss()
+                openAppSettings()
+            }
+            .setNegativeButton(R.string.btn_later) { dialog, _ ->
+                dialog.dismiss()
+                startConnectionFlow()
+            }
+            .show()
+    }
+
+    private fun openAppSettings() {
+        try {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", packageName, null)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            try {
+                val intent = Intent(Settings.ACTION_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                startActivity(intent)
+            } catch (_: Exception) {}
         }
     }
 
@@ -152,33 +338,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startConnectionFlow() {
-        // Langkah 1: Cek Termux terpasang
         if (!isTermuxInstalled()) {
             showError(getString(R.string.termux_not_installed))
             return
         }
 
+        isConnecting = true
         showLoading(getString(R.string.connecting_server))
 
-        // Langkah 2: Ambil token dari SharedPreferences
         val token = getOrCreateToken()
 
-        // Jalankan alur cek dan nyalakan server di thread latar belakang
         thread(start = true, name = "TermuxConnector") {
-            // Langkah 3: GET /health?token=<token>
             val isHealthy = checkHealth(token)
             if (isHealthy) {
-                // Langkah 5: Langsung loadUrl jika server sudah aktif
+                isConnected = true
+                isConnecting = false
                 runOnUiThread {
                     loadAppUrl(token)
                 }
                 return@thread
             }
 
-            // Langkah 4: Kirim RUN_COMMAND intent ke Termux RunCommandService
             triggerRunCommand(token)
 
-            // Cek /health tiap 500 ms sampai 25 detik (maksimal 50 kali)
             var connected = false
             val maxAttempts = 50
             for (attempt in 1..maxAttempts) {
@@ -193,6 +375,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
+            isConnected = connected
+            isConnecting = false
             runOnUiThread {
                 if (connected) {
                     loadAppUrl(token)
@@ -243,7 +427,9 @@ class MainActivity : AppCompatActivity() {
     private fun loadAppUrl(token: String) {
         statusLayout.visibility = View.GONE
         webView.visibility = View.VISIBLE
-        webView.loadUrl("http://127.0.0.1:$PORT/?token=$token")
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val lang = prefs.getString(PREF_LANGUAGE, "id") ?: "id"
+        webView.loadUrl("http://127.0.0.1:$PORT/?token=$token&lang=$lang")
     }
 
     private fun showLoading(message: String) {
@@ -251,6 +437,8 @@ class MainActivity : AppCompatActivity() {
         statusLayout.visibility = View.VISIBLE
         progressBar.visibility = View.VISIBLE
         btnRetry.visibility = View.GONE
+        btnOpenSettings.visibility = View.GONE
+        btnChangeLanguage.visibility = View.GONE
         textStatus.text = message
     }
 
@@ -259,6 +447,8 @@ class MainActivity : AppCompatActivity() {
         statusLayout.visibility = View.VISIBLE
         progressBar.visibility = View.GONE
         btnRetry.visibility = View.VISIBLE
+        btnOpenSettings.visibility = if (!hasRunCommandPermission()) View.VISIBLE else View.GONE
+        btnChangeLanguage.visibility = View.VISIBLE
         textStatus.text = message
     }
 }
